@@ -2,6 +2,11 @@
 
 StreamBox is a high-performance, web-native media player designed for the modern streaming era. Inspired by the versatility of VLC but optimized for the web, it offers a cinematic experience for browsing and watching thousands of live IPTV channels with zero-latency transitions.
 
+## 🚀 Live Demo
+**[Launch StreamBox on Vercel](https://streambox-phi.vercel.app/)**
+
+---
+
 ## 🌟 Key Features
 
 ### 📺 High-Performance Streaming
