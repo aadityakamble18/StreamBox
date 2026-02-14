@@ -28,6 +28,9 @@ export const PlayerOverlay: React.FC<PlayerOverlayProps> = ({
     const updatePlayState = () => setIsPlaying(!video.paused);
     video.addEventListener('play', updatePlayState);
     video.addEventListener('pause', updatePlayState);
+    // Sync initial volume
+    setVolume(video.volume);
+    
     return () => {
       video.removeEventListener('play', updatePlayState);
       video.removeEventListener('pause', updatePlayState);
@@ -140,21 +143,27 @@ export const PlayerOverlay: React.FC<PlayerOverlayProps> = ({
             )}
           </button>
           
-          <div className="flex items-center gap-3 sm:gap-4 group shrink-0">
-            <svg viewBox="0 0 24 24" className="w-4 h-4 sm:w-5 sm:h-5 fill-zinc-400 group-hover:fill-white">
+          {/* Volume Slider - Hidden on Mobile, refined design for Desktop */}
+          <div className="hidden sm:flex items-center gap-4 group shrink-0 relative">
+            <svg viewBox="0 0 24 24" className="w-5 h-5 fill-zinc-400 group-hover:fill-white transition-colors">
               <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>
             </svg>
-            <input 
-              type="range" 
-              min="0" max="1" step="0.1" 
-              value={volume}
-              onChange={(e) => {
-                const v = parseFloat(e.target.value);
-                setVolume(v);
-                if (videoRef.current) videoRef.current.volume = v;
-              }}
-              className="w-16 sm:w-24 h-1 bg-zinc-700 accent-orange-500 cursor-pointer appearance-none rounded-full"
-            />
+            <div className="relative w-24 h-6 flex items-center">
+              <input 
+                type="range" 
+                min="0" max="1" step="0.01" 
+                value={volume}
+                onChange={(e) => {
+                  const v = parseFloat(e.target.value);
+                  setVolume(v);
+                  if (videoRef.current) videoRef.current.volume = v;
+                }}
+                className="absolute inset-0 w-full h-1 bg-zinc-800 rounded-full cursor-pointer appearance-none accent-orange-500 z-10"
+                style={{
+                    background: `linear-gradient(to right, #ea580c ${volume * 100}%, #27272a ${volume * 100}%)`
+                }}
+              />
+            </div>
           </div>
 
           <button onClick={toggleFullscreen} className="text-zinc-400 hover:text-white transition-colors shrink-0">
@@ -164,6 +173,23 @@ export const PlayerOverlay: React.FC<PlayerOverlayProps> = ({
           </button>
         </div>
       </div>
+
+      <style>{`
+        input[type=range]::-webkit-slider-thumb {
+          appearance: none;
+          height: 12px;
+          width: 12px;
+          border-radius: 50%;
+          background: #ffffff;
+          cursor: pointer;
+          border: 2px solid #ea580c;
+          box-shadow: 0 0 10px rgba(0,0,0,0.5);
+          transition: transform 0.1s ease;
+        }
+        input[type=range]:hover::-webkit-slider-thumb {
+          transform: scale(1.2);
+        }
+      `}</style>
     </div>
   );
 };

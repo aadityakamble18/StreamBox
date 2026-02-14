@@ -21,6 +21,7 @@ export const IPTVBrowser: React.FC<IPTVBrowserProps> = ({ onSelectChannel, activ
   const [sortBy, setSortBy] = useState<SortType>('default');
   const [activityStore, setActivityStore] = useState<ActivityStore>(activityService.getStore());
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   useEffect(() => {
     fetchIPTVChannels().then(data => {
@@ -110,35 +111,41 @@ export const IPTVBrowser: React.FC<IPTVBrowserProps> = ({ onSelectChannel, activ
   }, [channels, search, activeGroup, sortBy, activityStore]);
 
   return (
-    <div className="flex flex-col md:flex-row h-full w-full bg-[#0a0a0a] overflow-hidden">
-      {/* Sidebar - Hidden on Mobile */}
-      <aside className="hidden md:flex w-72 border-r border-zinc-900 flex-col shrink-0 overflow-hidden bg-zinc-950/50">
-        <div className="p-8">
-          <h1 className="text-2xl font-black italic tracking-tighter text-white flex items-center gap-2">
-            STREAM<span className="text-orange-600">BOX</span>
-          </h1>
-        </div>
-        
-        <div className="flex-1 overflow-y-auto px-4 space-y-1 custom-scrollbar pb-10">
-          <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest px-4 mb-2">Categories</p>
-          {groups.map(group => (
-            <button
-              key={group}
-              onClick={() => setActiveGroup(group)}
-              className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-sm transition-all group ${
-                activeGroup === group 
-                ? 'bg-orange-600/10 text-orange-500 font-bold' 
-                : 'text-zinc-500 hover:bg-zinc-900/80 hover:text-zinc-200'
-              }`}
-            >
-              <span className="truncate">{group}</span>
-              {group !== 'All' && (
-                <span className="text-[9px] font-mono text-zinc-700 group-hover:text-zinc-500">
-                  {channels.filter(c => c.group === group).length}
-                </span>
-              )}
-            </button>
-          ))}
+    <div className="flex h-full w-full bg-[#0a0a0a] overflow-hidden">
+      {/* Side Curtain (Sidebar) */}
+      <aside 
+        className={`hidden md:flex flex-col shrink-0 border-r border-zinc-900 bg-zinc-950/50 transition-all duration-500 ease-in-out relative ${
+          isSidebarOpen ? 'w-72' : 'w-0 border-r-0'
+        }`}
+      >
+        <div className={`flex flex-col h-full transition-opacity duration-300 ${isSidebarOpen ? 'opacity-100' : 'opacity-0 overflow-hidden'}`}>
+          <div className="p-8">
+            <h1 className="text-2xl font-black italic tracking-tighter text-white flex items-center gap-2">
+              STREAM<span className="text-orange-600">BOX</span>
+            </h1>
+          </div>
+          
+          <div className="flex-1 overflow-y-auto px-4 space-y-1 custom-scrollbar pb-10">
+            <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest px-4 mb-2">Categories</p>
+            {groups.map(group => (
+              <button
+                key={group}
+                onClick={() => setActiveGroup(group)}
+                className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-sm transition-all group ${
+                  activeGroup === group 
+                  ? 'bg-orange-600/10 text-orange-500 font-bold' 
+                  : 'text-zinc-500 hover:bg-zinc-900/80 hover:text-zinc-200'
+                }`}
+              >
+                <span className="truncate">{group}</span>
+                {group !== 'All' && (
+                  <span className="text-[9px] font-mono text-zinc-700 group-hover:text-zinc-500">
+                    {channels.filter(c => c.group === group).length}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
         </div>
       </aside>
 
@@ -147,13 +154,27 @@ export const IPTVBrowser: React.FC<IPTVBrowserProps> = ({ onSelectChannel, activ
         {/* Header - Search and Sort */}
         <header className="shrink-0 flex flex-col px-4 sm:px-10 pt-4 pb-3 border-b border-zinc-900 bg-black/40 backdrop-blur-2xl z-20">
           <div className="flex items-center justify-between gap-3 mb-3">
-             <h1 className="md:hidden text-lg font-black italic tracking-tighter text-white shrink-0">
-               STREAM<span className="text-orange-600">BOX</span>
-             </h1>
-             <div className="relative w-full">
+             <div className="flex items-center gap-3">
+               {/* Toggle Sidebar Button (Desktop Only) */}
+               <button 
+                 onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                 className="hidden md:flex p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-orange-500 transition-colors"
+                 title={isSidebarOpen ? "Hide Sidebar" : "Show Sidebar"}
+               >
+                 <svg viewBox="0 0 24 24" className={`w-5 h-5 fill-current transition-transform duration-500 ${!isSidebarOpen ? 'rotate-180' : ''}`}>
+                   <path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z"/>
+                 </svg>
+               </button>
+               
+               <h1 className="md:hidden text-lg font-black italic tracking-tighter text-white shrink-0">
+                 STREAM<span className="text-orange-600">BOX</span>
+               </h1>
+             </div>
+
+             <div className="relative w-full max-w-xl mx-2">
                <input 
                  type="text" 
-                 placeholder="Search..." 
+                 placeholder="Search channels..." 
                  value={search}
                  onChange={(e) => setSearch(e.target.value)}
                  className="w-full bg-zinc-900/40 border border-zinc-800/50 text-white pl-9 sm:pl-14 pr-4 sm:pr-6 py-2 sm:py-4 rounded-xl sm:rounded-2xl text-[10px] sm:text-sm focus:outline-none focus:border-orange-500/40 transition-all shadow-inner"
@@ -199,7 +220,7 @@ export const IPTVBrowser: React.FC<IPTVBrowserProps> = ({ onSelectChannel, activ
           </div>
         </header>
 
-        {/* Scrollable Grid - Gap reduced to 2 for mobile side-by-side */}
+        {/* Scrollable Grid */}
         <div className="flex-1 overflow-y-auto p-2 sm:p-10 custom-scrollbar bg-[#0a0a0a]">
           {loading ? (
              <div className="h-full flex flex-col items-center justify-center gap-6">
@@ -207,7 +228,11 @@ export const IPTVBrowser: React.FC<IPTVBrowserProps> = ({ onSelectChannel, activ
                <p className="text-zinc-500 font-mono text-[10px] sm:text-xs uppercase tracking-[0.3em] animate-pulse">Scanning Waves</p>
              </div>
           ) : (
-            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2 sm:gap-6">
+            <div className={`grid grid-cols-2 gap-2 sm:gap-6 ${
+              isSidebarOpen 
+              ? 'lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4' 
+              : 'lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6'
+            }`}>
               {filteredChannels.map((channel, i) => {
                 const activity = activityStore[channel.url] || { likes: 0, dislikes: 0, views: 0, reviews: [] };
                 const avg = activity.reviews.length > 0 
@@ -279,6 +304,29 @@ export const IPTVBrowser: React.FC<IPTVBrowserProps> = ({ onSelectChannel, activ
             </div>
           )}
         </div>
+
+        {/* Persistent Footer */}
+        <footer className="shrink-0 bg-zinc-950/80 backdrop-blur-xl border-t border-zinc-900 px-4 sm:px-10 py-3 sm:py-5 flex items-center justify-between z-20">
+          <div className="flex items-center gap-2 sm:gap-4 overflow-hidden">
+            <span className="text-[8px] sm:text-[10px] text-zinc-500 font-medium uppercase tracking-[0.2em] whitespace-nowrap">
+              Made with ⚡ for the Web
+            </span>
+            <div className="hidden sm:block w-px h-3 bg-zinc-800"></div>
+            <p className="hidden sm:block text-[10px] text-zinc-600 font-mono">
+              © {new Date().getFullYear()} StreamBox
+            </p>
+          </div>
+          
+          <div className="flex items-center gap-3 sm:gap-6 shrink-0">
+             <div className="flex flex-col items-end">
+               <span className="text-[7px] sm:text-[9px] text-orange-600 font-black uppercase tracking-widest leading-none mb-0.5">Build Status</span>
+               <span className="text-[9px] sm:text-xs text-white font-mono flex items-center gap-1.5">
+                 <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]"></span>
+                 v1.2.4
+               </span>
+             </div>
+          </div>
+        </footer>
       </div>
 
       {selectedChannel && (
