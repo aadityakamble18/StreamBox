@@ -12,12 +12,12 @@ StreamBox is a high-performance, web-native media player designed for the modern
 ### 🎨 Premium UI/UX (VLC Inspired)
 - **Cinematic Controls**: A high-contrast, glassmorphism-based interface that prioritizes content. Controls intelligently fade out during inactivity.
 - **Mini-Player Mode**: A "Picture-in-Picture" style implementation that allows you to continue watching while you browse other categories or read reviews.
-- **Adaptive Grid**: A high-speed, searchable grid capable of rendering hundreds of items with smooth performance.
+- **Adaptive Grid**: A high-speed, searchable grid. Optimized for mobile with a responsive two-column layout on small screens.
 
 ### 💬 Community & Social Discovery
 - **Live Rating & Reviews**: A built-in feedback system where you can rate channels (1-10) and read community reviews directly in the player.
 - **Trending Metrics**: Real-time tracking of views, likes, and overall channel popularity (stored locally).
-- **One-Click Sharing**: Share your favorite streams instantly via the native Web Share API or quick-copy to clipboard.
+- **One-Click Sharing**: Share favorite streams instantly via the native Web Share API.
 
 ---
 
@@ -26,19 +26,19 @@ StreamBox is a high-performance, web-native media player designed for the modern
 ```text
 StreamBox/
 ├── components/
-│   ├── IPTVBrowser.tsx         # The main discovery hub; handles filtering and sorting.
-│   ├── MediaScreen.tsx         # The core video engine; manages HLS.js lifecycle.
-│   ├── PlayerOverlay.tsx       # The "VLC-style" HUD with playback and share controls.
-│   ├── ChannelDetailsModal.tsx # Social hub for ratings, reviews, and channel stats.
+│   ├── IPTVBrowser.tsx         # Discovery hub with responsive grid.
+│   ├── MediaScreen.tsx         # Core video engine (HLS.js).
+│   ├── PlayerOverlay.tsx       # Cinematic HUD controls.
+│   ├── ChannelDetailsModal.tsx # Social feedback and stats.
 ├── services/
-│   ├── iptvService.ts          # Handles fetching and parsing of M3U playlists.
-│   └── activityService.ts      # LocalStorage manager for reviews, likes, and views.
-├── types.ts                    # Centralized TypeScript interfaces for the entire app.
-├── App.tsx                     # The orchestrator; manages persistent player state.
+│   ├── iptvService.ts          # M3U playlist fetching and parsing.
+│   └── activityService.ts      # LocalStorage manager for social data.
+├── types.ts                    # Central TypeScript interfaces.
+├── App.tsx                     # Main application orchestrator.
 ├── index.tsx                   # React entry point.
-├── index.html                  # Main HTML template with CDN dependencies.
-├── constants.tsx               # Brand colors and shared SVG icons.
-└── metadata.json               # Application manifest and permissions.
+├── index.html                  # HTML5 template.
+├── constants.tsx               # Design tokens and icons.
+└── metadata.json               # Application manifest.
 ```
 
 ---
@@ -46,25 +46,17 @@ StreamBox/
 ## 🛠️ Technical Deep-Dive
 
 ### The "Continuous Stream" Architecture
-Standard web applications often re-mount components when changing views, which causes video streams to restart. StreamBox avoids this by placing the `MediaScreen` component at the root of the application. When switching to "Mini-Player" mode, the player doesn't reload; it simply animates to a fixed position in the corner of the screen using Tailwind CSS transitions, maintaining the active HLS buffer.
+Standard web applications often re-mount components when changing views, which causes video streams to restart. StreamBox avoids this by placing the `MediaScreen` component at the root. When switching to "Mini-Player" mode, the player simply animates to the corner, maintaining the active HLS buffer.
 
 ### Local Social State
-To maintain a "live" feel without a backend, the `activityService` utilizes a centralized `LocalStorage` store. This allows your personal ratings, view history, and community interactions to persist across browser sessions.
-
-## 🚀 Getting Started
-
-1. **Serve**: This app uses standard ES modules. Simply serve the root directory using any modern web server (e.g., `npx serve` or Live Server).
-2. **Browsing**: Use the left sidebar to filter channels by category.
-3. **Playing**: Click any channel to start the cinematic playback.
-4. **Mini-Player**: Click "Minimize" in the top left of the player to continue watching while browsing.
+To maintain a "live" feel without a backend, the `activityService` utilizes `LocalStorage`. This allows personal ratings, view history, and community interactions to persist across browser sessions.
 
 ---
 
 ## 🎖️ Credits & Data Sources
 
-This project leverages the incredible open-source data provided by the IPTV community:
-- **IPTV-org**: Channel lists and metadata are sourced from the [iptv-org/iptv](https://github.com/iptv-org/iptv) repository.
-- **HLS.js**: Core streaming engine provided by [video-dev/hls.js](https://github.com/video-dev/hls.js).
+- **IPTV-org**: Data sourced from [iptv-org/iptv](https://github.com/iptv-org/iptv).
+- **HLS.js**: Core engine by [video-dev/hls.js](https://github.com/video-dev/hls.js).
 - **VLC**: UI design language inspired by the [VideoLAN](https://www.videolan.org/vlc/) project.
 
 ---
