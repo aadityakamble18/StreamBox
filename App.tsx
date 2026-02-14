@@ -34,7 +34,7 @@ const App: React.FC = () => {
       originalChannel: channel
     };
     
-    setPlaylist([streamItem]); // For now, we just replace the one item
+    setPlaylist([streamItem]);
     setCurrentIndex(0);
     setPlayerMode('full');
     setIsRatingModalOpen(false);
@@ -66,8 +66,9 @@ const App: React.FC = () => {
     <div 
       className="h-screen w-screen bg-[#0a0a0a] text-zinc-100 font-sans overflow-hidden flex flex-col"
       onMouseMove={handleMouseMove}
+      onTouchStart={handleMouseMove}
     >
-      <main className="flex-1 relative overflow-hidden">
+      <main className="flex-1 relative overflow-hidden flex flex-col">
         {/* Main Channel Browser */}
         <IPTVBrowser 
           onSelectChannel={handleIPTVSelect} 
@@ -80,7 +81,7 @@ const App: React.FC = () => {
             className={`fixed transition-all duration-500 ease-in-out z-[60] shadow-2xl overflow-hidden group 
               ${playerMode === 'full' 
                 ? 'inset-0 bg-black' 
-                : 'bottom-8 right-8 w-80 h-48 rounded-2xl border border-zinc-800 bg-zinc-900 cursor-pointer ring-1 ring-white/5 hover:ring-orange-500/50'
+                : 'bottom-4 right-4 sm:bottom-8 sm:right-8 w-48 h-28 sm:w-80 sm:h-48 rounded-xl sm:rounded-2xl border border-zinc-800 bg-zinc-900 cursor-pointer ring-1 ring-white/5 hover:ring-orange-500/50'
               }`}
             onClick={() => playerMode === 'mini' && setPlayerMode('full')}
           >
@@ -117,22 +118,22 @@ const App: React.FC = () => {
 
             {/* Mini Player HUD */}
             {playerMode === 'mini' && (
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-3">
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-2 sm:p-3">
                 <div className="flex justify-between items-start">
                   <div className="flex-1 min-w-0 pr-2">
-                    <p className="text-white text-[10px] font-bold truncate leading-none mb-1">{currentMedia.name}</p>
-                    <p className="text-zinc-400 text-[8px] uppercase tracking-wider font-mono truncate">{currentMedia.group}</p>
+                    <p className="text-white text-[8px] sm:text-[10px] font-bold truncate leading-none mb-1">{currentMedia.name}</p>
+                    <p className="text-zinc-400 text-[6px] sm:text-[8px] uppercase tracking-wider font-mono truncate">{currentMedia.group}</p>
                   </div>
                   <button 
                     onClick={(e) => { e.stopPropagation(); handleClosePlayer(); }}
-                    className="bg-black/60 hover:bg-red-600 text-white p-1 rounded-lg transition-colors"
+                    className="bg-black/60 hover:bg-red-600 text-white p-1 rounded-md sm:rounded-lg transition-colors"
                   >
-                    <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                    <svg viewBox="0 0 24 24" className="w-3 h-3 sm:w-4 sm:h-4 fill-current"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
                   </button>
                 </div>
                 <div className="flex justify-center">
-                  <div className="bg-orange-600/20 text-orange-500 text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded-md border border-orange-500/20">
-                    Click to expand
+                  <div className="bg-orange-600/20 text-orange-500 text-[6px] sm:text-[8px] font-black uppercase tracking-widest px-2 py-0.5 sm:py-1 rounded-md border border-orange-500/20">
+                    Expand
                   </div>
                 </div>
               </div>
