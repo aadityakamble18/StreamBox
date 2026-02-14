@@ -1,8 +1,8 @@
 
 import React from 'react';
 
-export const VLC_ORANGE = '#ff8800';
-export const VLC_GREY = '#f0f0f0';
+export const SB_ORANGE = '#ff8800';
+export const SB_GREY = '#f0f0f0';
 
 export const Icons = {
   Play: () => <svg viewBox="0 0 24 24" className="w-6 h-6 fill-current"><path d="M8 5v14l11-7z"/></svg>,

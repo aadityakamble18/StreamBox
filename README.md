@@ -30,11 +30,10 @@ StreamBox/
 │   ├── MediaScreen.tsx         # The core video engine; manages HLS.js lifecycle.
 │   ├── PlayerOverlay.tsx       # The "VLC-style" HUD with playback and share controls.
 │   ├── ChannelDetailsModal.tsx # Social hub for ratings, reviews, and channel stats.
-│   └── MenuBar.tsx             # [Legacy] UI is now integrated into the modern HUD.
 ├── services/
 │   ├── iptvService.ts          # Handles fetching and parsing of M3U playlists.
 │   ├── activityService.ts      # LocalStorage manager for reviews, likes, and views.
-│   └── geminiService.ts        # Optional smart assistant for content analysis.
+│   └── geminiService.ts        # Smart assistant for optional content analysis.
 ├── types.ts                    # Centralized TypeScript interfaces for the entire app.
 ├── App.tsx                     # The orchestrator; manages persistent player state.
 ├── index.tsx                   # React entry point.
@@ -59,6 +58,15 @@ To maintain a "live" feel without a backend, the `activityService` utilizes a ce
 2. **Browsing**: Use the left sidebar to filter channels by category.
 3. **Playing**: Click any channel to start the cinematic playback.
 4. **Mini-Player**: Click "Minimize" in the top left of the player to continue watching while browsing.
+
+---
+
+## 🎖️ Credits & Data Sources
+
+This project leverages the incredible open-source data provided by the IPTV community:
+- **IPTV-org**: Channel lists and metadata are sourced from the [iptv-org/iptv](https://github.com/iptv-org/iptv) repository.
+- **HLS.js**: Core streaming engine provided by [video-dev/hls.js](https://github.com/video-dev/hls.js).
+- **VLC**: UI design language inspired by the [VideoLAN](https://www.videolan.org/vlc/) project.
 
 ---
 
