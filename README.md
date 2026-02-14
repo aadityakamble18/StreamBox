@@ -52,12 +52,49 @@ Standard web applications often re-mount components when changing views, which c
 ### Local Social State
 To maintain a "live" feel without a backend, the `activityService` utilizes a centralized `LocalStorage` store. This allows your personal ratings, view history, and community interactions to persist across browser sessions.
 
-## 🚀 Getting Started
+## 🚀 Live Demo
 
-1. **Serve**: This app uses standard ES modules. Simply serve the root directory using any modern web server (e.g., `npx serve` or Live Server).
-2. **Browsing**: Use the left sidebar to filter channels by category.
-3. **Playing**: Click any channel to start the cinematic playback.
-4. **Mini-Player**: Click "Minimize" in the top left of the player to continue watching while browsing.
+**View the live application:** [https://streambox-phi.vercel.app](https://streambox-phi.vercel.app)
+
+---
+
+## 🛠️ Getting Started
+
+### Local Development
+1. **Clone the repo**:
+   ```bash
+   git clone https://github.com/aadityakamble18/StreamBox.git
+   cd StreamBox
+   ```
+2. **Install dependencies**:
+   ```bash
+   npm install
+   ```
+3. **Run development server**:
+   ```bash
+   npm run dev
+   ```
+4. **Build for production**:
+   ```bash
+   npm run build
+   ```
+
+### 🌍 Deployment (Vercel)
+This project is optimized for deployment on **Vercel**. Every push to the `main` branch will automatically trigger a new build.
+
+---
+
+## 🔑 Environment Variables
+
+To enable the AI content analysis features, you need to provide a Google Gemini API Key.
+
+1. Create a `.env` file in the root directory:
+   ```env
+   GEMINI_API_KEY=your_api_key_here
+   ```
+2. For Vercel, add `GEMINI_API_KEY` in the **Project Settings > Environment Variables** section.
+
+---
 
 ---
 
