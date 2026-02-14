@@ -1,8 +1,5 @@
 {
   "name": "StreamBox",
   "description": "A high-performance VLC-inspired IPTV player featuring persistent streaming, cinematic UI overlays, and social discovery tools.",
-  "requestFramePermissions": [
-    "camera",
-    "microphone"
-  ]
+  "requestFramePermissions": []
 }

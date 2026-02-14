@@ -1,4 +1,3 @@
-
 export interface MediaItem {
   id: string;
   file?: File;
@@ -49,11 +48,4 @@ export interface PlayerState {
   isFullscreen: boolean;
   repeatMode: 'none' | 'one' | 'all';
   isShuffle: boolean;
-}
-
-export interface AnalysisResult {
-  summary: string;
-  genre: string;
-  mood: string;
-  timestamp: number;
 }
