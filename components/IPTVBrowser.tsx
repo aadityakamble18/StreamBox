@@ -145,21 +145,21 @@ export const IPTVBrowser: React.FC<IPTVBrowserProps> = ({ onSelectChannel, activ
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header - Search and Sort */}
-        <header className="shrink-0 flex flex-col px-4 sm:px-10 pt-6 pb-4 border-b border-zinc-900 bg-black/40 backdrop-blur-2xl z-20">
-          <div className="flex items-center justify-between gap-4 mb-4">
-             <h1 className="md:hidden text-xl font-black italic tracking-tighter text-white shrink-0">
+        <header className="shrink-0 flex flex-col px-4 sm:px-10 pt-4 pb-3 border-b border-zinc-900 bg-black/40 backdrop-blur-2xl z-20">
+          <div className="flex items-center justify-between gap-3 mb-3">
+             <h1 className="md:hidden text-lg font-black italic tracking-tighter text-white shrink-0">
                STREAM<span className="text-orange-600">BOX</span>
              </h1>
-             <div className="relative w-full max-w-xl">
+             <div className="relative w-full">
                <input 
                  type="text" 
-                 placeholder="Search channels..." 
+                 placeholder="Search..." 
                  value={search}
                  onChange={(e) => setSearch(e.target.value)}
-                 className="w-full bg-zinc-900/40 border border-zinc-800/50 text-white pl-10 sm:pl-14 pr-4 sm:pr-6 py-2.5 sm:py-4 rounded-xl sm:rounded-2xl text-xs sm:text-sm focus:outline-none focus:border-orange-500/40 transition-all shadow-inner"
+                 className="w-full bg-zinc-900/40 border border-zinc-800/50 text-white pl-9 sm:pl-14 pr-4 sm:pr-6 py-2 sm:py-4 rounded-xl sm:rounded-2xl text-[10px] sm:text-sm focus:outline-none focus:border-orange-500/40 transition-all shadow-inner"
                />
-               <svg viewBox="0 0 24 24" className="w-4 h-4 sm:w-6 sm:h-6 absolute left-3 sm:left-5 top-1/2 -translate-y-1/2 fill-zinc-600">
-                 <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99(5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+               <svg viewBox="0 0 24 24" className="w-4 h-4 sm:w-6 sm:h-6 absolute left-2.5 sm:left-5 top-1/2 -translate-y-1/2 fill-zinc-600">
+                 <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
                </svg>
              </div>
              
@@ -182,12 +182,12 @@ export const IPTVBrowser: React.FC<IPTVBrowserProps> = ({ onSelectChannel, activ
           </div>
 
           {/* Mobile Categories - Horizontal Scroll */}
-          <div className="md:hidden flex overflow-x-auto gap-2 no-scrollbar py-1">
+          <div className="md:hidden flex overflow-x-auto gap-1.5 no-scrollbar py-1">
             {groups.map(group => (
               <button
                 key={group}
                 onClick={() => setActiveGroup(group)}
-                className={`shrink-0 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all ${
+                className={`shrink-0 px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider transition-all ${
                   activeGroup === group 
                   ? 'bg-orange-600 text-white' 
                   : 'bg-zinc-900 text-zinc-500'
@@ -199,15 +199,15 @@ export const IPTVBrowser: React.FC<IPTVBrowserProps> = ({ onSelectChannel, activ
           </div>
         </header>
 
-        {/* Scrollable Grid - Now 2 columns on Mobile */}
-        <div className="flex-1 overflow-y-auto p-3 sm:p-10 custom-scrollbar bg-[#0a0a0a]">
+        {/* Scrollable Grid - Gap reduced to 2 for mobile side-by-side */}
+        <div className="flex-1 overflow-y-auto p-2 sm:p-10 custom-scrollbar bg-[#0a0a0a]">
           {loading ? (
              <div className="h-full flex flex-col items-center justify-center gap-6">
                <div className="w-12 h-12 sm:w-16 sm:h-16 border-t-2 border-orange-500 rounded-full animate-spin"></div>
                <p className="text-zinc-500 font-mono text-[10px] sm:text-xs uppercase tracking-[0.3em] animate-pulse">Scanning Waves</p>
              </div>
           ) : (
-            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-6">
+            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2 sm:gap-6">
               {filteredChannels.map((channel, i) => {
                 const activity = activityStore[channel.url] || { likes: 0, dislikes: 0, views: 0, reviews: [] };
                 const avg = activity.reviews.length > 0 
@@ -217,48 +217,48 @@ export const IPTVBrowser: React.FC<IPTVBrowserProps> = ({ onSelectChannel, activ
                 return (
                   <div 
                     key={`${channel.url}-${i}`}
-                    className="group relative bg-zinc-900/30 border border-zinc-800/40 rounded-xl sm:rounded-3xl p-3 sm:p-5 cursor-pointer hover:bg-zinc-800/60 transition-all duration-500 shadow-xl flex flex-col"
+                    className="group relative bg-zinc-900/30 border border-zinc-800/40 rounded-lg sm:rounded-3xl p-2 sm:p-5 cursor-pointer hover:bg-zinc-800/60 transition-all duration-500 shadow-xl flex flex-col min-w-0"
                   >
                     <div onClick={() => onSelectChannel(channel)} className="flex flex-col gap-2 sm:gap-4 flex-1">
-                      <div className="w-12 h-12 sm:w-20 sm:h-20 bg-black rounded-lg sm:rounded-2xl border border-zinc-800/50 flex items-center justify-center overflow-hidden shrink-0 self-center relative">
+                      <div className="w-10 h-10 sm:w-20 sm:h-20 bg-black rounded-lg sm:rounded-2xl border border-zinc-800/50 flex items-center justify-center overflow-hidden shrink-0 self-center relative">
                         {channel.logo ? (
-                          <img src={channel.logo} alt="" className="max-w-full max-h-full object-contain p-1.5 sm:p-3" onError={(e) => {
-                             e.currentTarget.parentElement!.innerHTML = '<span class="text-xl sm:text-3xl opacity-20">📡</span>';
+                          <img src={channel.logo} alt="" className="max-w-full max-h-full object-contain p-1 sm:p-3" onError={(e) => {
+                             e.currentTarget.parentElement!.innerHTML = '<span class="text-lg sm:text-3xl opacity-20">📡</span>';
                           }} />
                         ) : (
-                          <span className="text-xl sm:text-3xl opacity-20">📡</span>
+                          <span className="text-lg sm:text-3xl opacity-20">📡</span>
                         )}
                         <div className="absolute inset-0 bg-black/0 md:group-hover:bg-black/40 transition-colors flex items-center justify-center">
-                           <svg viewBox="0 0 24 24" className="w-5 h-5 sm:w-8 sm:h-8 fill-white opacity-0 md:group-hover:opacity-100 transition-all scale-75 md:group-hover:scale-100">
+                           <svg viewBox="0 0 24 24" className="w-4 h-4 sm:w-8 sm:h-8 fill-white opacity-0 md:group-hover:opacity-100 transition-all scale-75 md:group-hover:scale-100">
                              <path d="M8 5v14l11-7z"/>
                            </svg>
                         </div>
                       </div>
                       <div className="text-center min-w-0">
-                        <h4 className="text-[10px] sm:text-sm font-bold text-zinc-100 truncate md:group-hover:text-orange-400 transition-colors px-1">
+                        <h4 className="text-[9px] sm:text-sm font-bold text-zinc-100 truncate md:group-hover:text-orange-400 transition-colors px-0.5">
                           {channel.name}
                         </h4>
-                        <p className="text-[7px] sm:text-[10px] text-zinc-500 mt-0.5 sm:mt-1 uppercase tracking-wider font-mono truncate px-1">{channel.group}</p>
+                        <p className="text-[6px] sm:text-[10px] text-zinc-500 mt-0.5 sm:mt-1 uppercase tracking-wider font-mono truncate px-0.5">{channel.group}</p>
                       </div>
                     </div>
 
                     <div className="flex items-center justify-between mt-2 sm:mt-4 pt-2 sm:pt-4 border-t border-white/5">
-                      <div className="flex items-center gap-1" onClick={(e) => { e.stopPropagation(); setSelectedChannel(channel); }}>
-                        <span className={`text-[9px] sm:text-xs font-black ${avg ? 'text-orange-500' : 'text-zinc-700'}`}>
+                      <div className="flex items-center gap-0.5" onClick={(e) => { e.stopPropagation(); setSelectedChannel(channel); }}>
+                        <span className={`text-[8px] sm:text-xs font-black ${avg ? 'text-orange-500' : 'text-zinc-700'}`}>
                           {avg || '—'}
                         </span>
-                        <svg viewBox="0 0 24 24" className={`w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 ${avg ? 'fill-orange-500' : 'fill-zinc-700'}`}>
+                        <svg viewBox="0 0 24 24" className={`w-2 h-2 sm:w-3.5 sm:h-3.5 ${avg ? 'fill-orange-500' : 'fill-zinc-700'}`}>
                           <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
                         </svg>
                       </div>
                       
-                      <div className="flex items-center gap-1.5 sm:gap-2">
+                      <div className="flex items-center gap-1 sm:gap-2">
                         <button 
                           onClick={(e) => handleShare(e, channel)}
-                          className={`p-1 sm:p-2 rounded-full transition-all ${copyFeedback === channel.url ? 'bg-green-600 text-white' : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-400'}`}
+                          className={`p-0.5 sm:p-2 rounded-full transition-all ${copyFeedback === channel.url ? 'bg-green-600 text-white' : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-400'}`}
                         >
                           {copyFeedback === channel.url ? (
-                            <svg viewBox="0 0 24 24" className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 fill-current"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                            <svg viewBox="0 0 24 24" className="w-2 h-2 sm:w-3.5 sm:h-3.5 fill-current"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
                           ) : (
                             <svg viewBox="0 0 24 24" className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 fill-current">
                               <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/>
@@ -267,7 +267,7 @@ export const IPTVBrowser: React.FC<IPTVBrowserProps> = ({ onSelectChannel, activ
                         </button>
                         <button 
                           onClick={(e) => { e.stopPropagation(); setSelectedChannel(channel); }}
-                          className="bg-zinc-800/80 hover:bg-orange-600 text-[7px] sm:text-[8px] font-black uppercase tracking-widest px-1.5 sm:px-3 py-1 sm:py-1.5 rounded-full transition-all text-zinc-400 hover:text-white"
+                          className="bg-zinc-800/80 hover:bg-orange-600 text-[6px] sm:text-[8px] font-black uppercase tracking-widest px-1 sm:px-3 py-1 rounded-full transition-all text-zinc-400 hover:text-white"
                         >
                           Rate
                         </button>

@@ -22,7 +22,3 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-<<<<<<< HEAD
-=======
-.vercel/
->>>>>>> 73142d2 (chore: update project and refine UI)
