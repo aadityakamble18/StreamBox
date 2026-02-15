@@ -40,10 +40,19 @@ export const IPTVBrowser: React.FC<IPTVBrowserProps> = ({ onSelectChannel, activ
       setLoading(false);
     });
 
-    const interval = setInterval(() => {
-      setActivityStore(activityService.getStore());
-    }, 5000);
-    return () => clearInterval(interval);
+    // 1. Initial global sync
+    activityService.fetchAllActivity().then(store => {
+      setActivityStore(store);
+    });
+
+    // 2. Real-time subscription algorithm
+    const subscription = activityService.subscribe((freshStore) => {
+      setActivityStore(freshStore);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const handleShare = async (e: React.MouseEvent, channel: IPTVChannel) => {
@@ -69,6 +78,11 @@ export const IPTVBrowser: React.FC<IPTVBrowserProps> = ({ onSelectChannel, activ
         console.error('Failed to copy', err);
       }
     }
+  };
+
+  const handleSelectChannel = async (channel: IPTVChannel) => {
+    onSelectChannel(channel);
+    await activityService.incrementViews(channel.url);
   };
 
   const groups = useMemo(() => {
@@ -294,7 +308,7 @@ export const IPTVBrowser: React.FC<IPTVBrowserProps> = ({ onSelectChannel, activ
                   index={i}
                   activity={activityStore[channel.url] || { likes: 0, dislikes: 0, views: 0, reviews: [] }}
                   copyFeedback={copyFeedback}
-                  onSelect={onSelectChannel}
+                  onSelect={handleSelectChannel}
                   onOpenDetails={setSelectedChannel}
                   onShare={handleShare}
                   prefetchManifest={prefetchManifest}
@@ -321,7 +335,7 @@ export const IPTVBrowser: React.FC<IPTVBrowserProps> = ({ onSelectChannel, activ
               <span className="text-[7px] sm:text-[9px] text-orange-600 font-black uppercase tracking-widest leading-none mb-0.5">Build Status</span>
               <span className="text-[9px] sm:text-xs text-white font-mono flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]"></span>
-                v1.3.0
+                v1.4.0
               </span>
             </div>
           </div>

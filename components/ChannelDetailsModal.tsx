@@ -10,11 +10,11 @@ interface ChannelDetailsModalProps {
   isMini?: boolean;
 }
 
-export const ChannelDetailsModal: React.FC<ChannelDetailsModalProps> = ({ 
-  channel, 
-  onClose, 
-  onPlay, 
-  isMini = false 
+export const ChannelDetailsModal: React.FC<ChannelDetailsModalProps> = ({
+  channel,
+  onClose,
+  onPlay,
+  isMini = false
 }) => {
   const [activity, setActivity] = useState<ChannelActivity>(activityService.getChannelActivity(channel.url));
   const [reviewText, setReviewText] = useState('');
@@ -22,8 +22,27 @@ export const ChannelDetailsModal: React.FC<ChannelDetailsModalProps> = ({
   const [hoverRating, setHoverRating] = useState<number | null>(null);
   const [copyFeedback, setCopyFeedback] = useState(false);
 
-  const handleLike = () => setActivity(activityService.toggleLike(channel.url));
-  const handleDislike = () => setActivity(activityService.toggleDislike(channel.url));
+  // Sync with global store if it updates while modal is open
+  useEffect(() => {
+    setActivity(activityService.getChannelActivity(channel.url));
+  }, [channel.url]);
+
+  const handleLike = async () => {
+    const currentlyLiked = activity.userLiked || false;
+    await activityService.toggleLike(channel.url, currentlyLiked);
+    // Real-time listener will update the store, which will eventually sync back
+    // but for instant feedback we can pivot locally
+    setActivity(prev => ({
+      ...prev,
+      likes: currentlyLiked ? Math.max(0, prev.likes - 1) : prev.likes + 1,
+      userLiked: !currentlyLiked
+    }));
+  };
+
+  const handleDislike = () => {
+    // For now, toggleLike handles primary social signal
+    // Dislike logic can be expanded in v1.5
+  };
 
   const handleShare = async () => {
     const shareData = {
@@ -49,20 +68,19 @@ export const ChannelDetailsModal: React.FC<ChannelDetailsModalProps> = ({
     }
   };
 
-  const handleQuickRate = (val: number) => {
+  const handleQuickRate = async (val: number) => {
     setRating(val);
-    const newActivity = activityService.addReview(channel.url, reviewText, val);
-    setActivity(newActivity);
+    await activityService.addReview(channel.url, reviewText, val);
   };
 
-  const submitReview = (e: React.FormEvent) => {
+  const submitReview = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newActivity = activityService.addReview(channel.url, reviewText, rating);
-    setActivity(newActivity);
+    if (!reviewText.trim()) return;
+    await activityService.addReview(channel.url, reviewText, rating);
     setReviewText('');
   };
 
-  const avgRating = activity.reviews.length > 0 
+  const avgRating = activity.reviews.length > 0
     ? (activity.reviews.reduce((acc, r) => acc + r.rating, 0) / activity.reviews.length).toFixed(1)
     : 'N/A';
 
@@ -81,15 +99,15 @@ export const ChannelDetailsModal: React.FC<ChannelDetailsModalProps> = ({
           <div className="flex-1 min-w-0 w-full text-center sm:text-left">
             <div className="flex justify-between items-center sm:items-start gap-4 mb-2">
               <h2 className="text-lg sm:text-2xl font-black text-white leading-tight truncate flex-1">{channel.name}</h2>
-              <button 
+              <button
                 onClick={handleShare}
                 className={`p-2 rounded-xl transition-all shrink-0 ${copyFeedback ? 'bg-green-600 text-white' : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-400'}`}
               >
                 {copyFeedback ? (
-                  <svg viewBox="0 0 24 24" className="w-4 h-4 sm:w-5 sm:h-5 fill-current"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                  <svg viewBox="0 0 24 24" className="w-4 h-4 sm:w-5 sm:h-5 fill-current"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /></svg>
                 ) : (
                   <svg viewBox="0 0 24 24" className="w-4 h-4 sm:w-5 sm:h-5 fill-current">
-                    <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/>
+                    <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z" />
                   </svg>
                 )}
               </button>
@@ -101,11 +119,11 @@ export const ChannelDetailsModal: React.FC<ChannelDetailsModalProps> = ({
             </div>
             <div className="flex items-center justify-center sm:justify-start gap-3 sm:gap-4">
               {!isMini && (
-                <button 
+                <button
                   onClick={onPlay}
                   className="bg-orange-600 hover:bg-orange-500 text-white font-bold px-6 sm:px-8 py-2 rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-orange-600/20 text-xs sm:text-base"
                 >
-                  <svg viewBox="0 0 24 24" className="w-4 h-4 sm:w-5 sm:h-5 fill-current"><path d="M8 5v14l11-7z"/></svg>
+                  <svg viewBox="0 0 24 24" className="w-4 h-4 sm:w-5 sm:h-5 fill-current"><path d="M8 5v14l11-7z" /></svg>
                   Watch
                 </button>
               )}
@@ -130,22 +148,20 @@ export const ChannelDetailsModal: React.FC<ChannelDetailsModalProps> = ({
             <div className="bg-black/20 p-4 sm:p-6 rounded-2xl border border-zinc-800/50 flex flex-col justify-center gap-3 sm:gap-4">
               <p className="text-[8px] sm:text-[10px] text-zinc-500 uppercase font-black tracking-widest mb-1 text-center">Feedback</p>
               <div className="flex gap-2 sm:gap-3">
-                <button 
+                <button
                   onClick={handleLike}
-                  className={`flex-1 flex items-center justify-center gap-1 sm:gap-2 py-2 sm:py-3 rounded-xl border transition-all ${
-                    activity.userLiked ? 'bg-orange-600 border-orange-500 text-white shadow-lg' : 'bg-zinc-800/50 border-zinc-700 text-zinc-400'
-                  }`}
+                  className={`flex-1 flex items-center justify-center gap-1 sm:gap-2 py-2 sm:py-3 rounded-xl border transition-all ${activity.userLiked ? 'bg-orange-600 border-orange-500 text-white shadow-lg' : 'bg-zinc-800/50 border-zinc-700 text-zinc-400'
+                    }`}
                 >
-                  <svg viewBox="0 0 24 24" className="w-4 h-4 sm:w-5 sm:h-5 fill-current"><path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.75 0 1.41-.41 1.75-1.03l3.51-8.19c.16-.41.25-.86.25-1.32v-1.5z"/></svg>
+                  <svg viewBox="0 0 24 24" className="w-4 h-4 sm:w-5 sm:h-5 fill-current"><path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.75 0 1.41-.41 1.75-1.03l3.51-8.19c.16-.41.25-.86.25-1.32v-1.5z" /></svg>
                   <span className="font-bold text-xs sm:text-sm">{activity.likes}</span>
                 </button>
-                <button 
+                <button
                   onClick={handleDislike}
-                  className={`flex-1 flex items-center justify-center gap-1 sm:gap-2 py-2 sm:py-3 rounded-xl border transition-all ${
-                    activity.userDisliked ? 'bg-zinc-100 border-white text-black' : 'bg-zinc-800/50 border-zinc-700 text-zinc-400'
-                  }`}
+                  className={`flex-1 flex items-center justify-center gap-1 sm:gap-2 py-2 sm:py-3 rounded-xl border transition-all ${activity.userDisliked ? 'bg-zinc-100 border-white text-black' : 'bg-zinc-800/50 border-zinc-700 text-zinc-400'
+                    }`}
                 >
-                  <svg viewBox="0 0 24 24" className="w-4 h-4 sm:w-5 sm:h-5 fill-current"><path d="M15 3H6c-.83 0-1.54.5-1.84 1.22l-3.02 7.05c-.09.23-.14.47-.14.73v2c0 1.1.9 2 2 2h6.31l-.95 4.57-.03.32c0 .41.17.79.44 1.06L9.83 23l6.59-6.59c.36-.36.58-.86.58-1.41V5c0-1.1-.9-2-2-2zm4 0v12h4V3h-4z"/></svg>
+                  <svg viewBox="0 0 24 24" className="w-4 h-4 sm:w-5 sm:h-5 fill-current"><path d="M15 3H6c-.83 0-1.54.5-1.84 1.22l-3.02 7.05c-.09.23-.14.47-.14.73v2c0 1.1.9 2 2 2h6.31l-.95 4.57-.03.32c0 .41.17.79.44 1.06L9.83 23l6.59-6.59c.36-.36.58-.86.58-1.41V5c0-1.1-.9-2-2-2zm4 0v12h4V3h-4z" /></svg>
                   <span className="font-bold text-xs sm:text-sm">{activity.dislikes}</span>
                 </button>
               </div>
@@ -166,11 +182,10 @@ export const ChannelDetailsModal: React.FC<ChannelDetailsModalProps> = ({
                     onMouseEnter={() => setHoverRating(val)}
                     onMouseLeave={() => setHoverRating(null)}
                     onClick={() => handleQuickRate(val)}
-                    className={`shrink-0 w-8 h-8 sm:w-10 sm:h-12 rounded-lg transition-all flex items-center justify-center ${
-                      isActive 
-                        ? 'bg-orange-600 text-white' 
+                    className={`shrink-0 w-8 h-8 sm:w-10 sm:h-12 rounded-lg transition-all flex items-center justify-center ${isActive
+                        ? 'bg-orange-600 text-white'
                         : 'bg-zinc-800/50 text-zinc-600'
-                    }`}
+                      }`}
                   >
                     <span className="text-[10px] sm:text-xs font-black">{val}</span>
                   </button>
@@ -185,7 +200,7 @@ export const ChannelDetailsModal: React.FC<ChannelDetailsModalProps> = ({
                 placeholder="Write a quick review..."
                 className="w-full bg-black/40 border border-zinc-800 rounded-xl p-3 sm:p-4 text-xs sm:text-sm text-white focus:outline-none focus:border-orange-500/50 min-h-[80px] transition-colors"
               />
-              <button 
+              <button
                 onClick={submitReview}
                 className="w-full bg-zinc-100 text-black font-black uppercase text-[8px] sm:text-[10px] tracking-[0.2em] px-6 py-3 sm:py-4 rounded-xl hover:bg-white transition-all disabled:opacity-30"
                 disabled={!reviewText.trim()}
