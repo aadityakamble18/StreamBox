@@ -6,7 +6,19 @@ export async function fetchIPTVChannels(): Promise<IPTVChannel[]> {
   try {
     const response = await fetch(url);
     const text = await response.text();
-    return parseM3U(text);
+
+    return new Promise((resolve, reject) => {
+      const worker = new Worker(new URL('./m3uWorker.js', import.meta.url));
+      worker.onmessage = (e) => {
+        resolve(e.data);
+        worker.terminate();
+      };
+      worker.onerror = (err) => {
+        reject(err);
+        worker.terminate();
+      };
+      worker.postMessage({ content: text });
+    });
   } catch (error) {
     console.error("Failed to fetch IPTV channels:", error);
     return [];
@@ -20,7 +32,7 @@ function parseM3U(content: string): IPTVChannel[] {
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
-    
+
     if (line.startsWith('#EXTINF:')) {
       // Extract name (usually after the last comma)
       const nameMatch = line.match(/,(.*)$/);
