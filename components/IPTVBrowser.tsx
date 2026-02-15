@@ -5,6 +5,7 @@ import { fetchIPTVChannels } from '../services/iptvService';
 import { activityService } from '../services/activityService';
 import { ChannelDetailsModal } from './ChannelDetailsModal';
 import { ChannelCard } from './ChannelCard';
+import { AboutPage } from './AboutPage';
 
 interface IPTVBrowserProps {
   onSelectChannel: (channel: IPTVChannel) => void;
@@ -24,6 +25,7 @@ export const IPTVBrowser: React.FC<IPTVBrowserProps> = ({ onSelectChannel, activ
   const [activityStore, setActivityStore] = useState<ActivityStore>(activityService.getStore());
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [visibleCount, setVisibleCount] = useState(40);
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -212,6 +214,16 @@ export const IPTVBrowser: React.FC<IPTVBrowserProps> = ({ onSelectChannel, activ
               </button>
             ))}
           </div>
+
+          <div className="p-4 border-t border-zinc-900">
+            <button
+              onClick={() => setIsAboutOpen(true)}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-zinc-500 hover:bg-zinc-900 hover:text-white transition-all group"
+            >
+              <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" /></svg>
+              <span className="font-bold">About StreamBox</span>
+            </button>
+          </div>
         </div>
       </aside>
 
@@ -335,12 +347,16 @@ export const IPTVBrowser: React.FC<IPTVBrowserProps> = ({ onSelectChannel, activ
               <span className="text-[7px] sm:text-[9px] text-orange-600 font-black uppercase tracking-widest leading-none mb-0.5">Build Status</span>
               <span className="text-[9px] sm:text-xs text-white font-mono flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]"></span>
-                v1.4.0
+                v1.4.1
               </span>
             </div>
           </div>
         </footer>
       </div>
+
+      {isAboutOpen && (
+        <AboutPage onClose={() => setIsAboutOpen(false)} />
+      )}
 
       {selectedChannel && (
         <ChannelDetailsModal
