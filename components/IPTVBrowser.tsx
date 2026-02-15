@@ -347,7 +347,7 @@ export const IPTVBrowser: React.FC<IPTVBrowserProps> = ({ onSelectChannel, activ
               <span className="text-[7px] sm:text-[9px] text-orange-600 font-black uppercase tracking-widest leading-none mb-0.5">Build Status</span>
               <span className="text-[9px] sm:text-xs text-white font-mono flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]"></span>
-                v1.4.1
+                v1.4.2
               </span>
             </div>
           </div>

@@ -154,10 +154,10 @@ export const MediaScreen: React.FC<MediaScreenProps> = ({ media, videoRef, onEnd
             {error}
           </p>
           <button
-            onClick={() => window.location.reload()}
-            className="mt-6 px-4 py-2 bg-white text-black text-[10px] font-black uppercase tracking-widest rounded-full hover:bg-orange-500 hover:text-white transition-all"
+            onClick={onEnded}
+            className="mt-6 px-4 py-2 bg-white text-black text-[10px] font-black uppercase tracking-widest rounded-full hover:bg-orange-500 hover:text-white transition-all pointer-events-auto"
           >
-            Refresh System
+            Back to Browser
           </button>
         </div>
       )}
