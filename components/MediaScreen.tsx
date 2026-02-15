@@ -8,13 +8,67 @@ interface MediaScreenProps {
   videoRef: React.RefObject<HTMLVideoElement | null>;
   onEnded: () => void;
   isMini?: boolean;
+  showCaptions?: boolean;
 }
 
-export const MediaScreen: React.FC<MediaScreenProps> = ({ media, videoRef, onEnded, isMini = false }) => {
+export const MediaScreen: React.FC<MediaScreenProps> = ({ media, videoRef, onEnded, isMini = false, showCaptions = false }) => {
   const [isBuffering, setIsBuffering] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [liveCaption, setLiveCaption] = useState<string>("");
   const hlsRef = useRef<Hls | null>(null);
   const timeoutRef = useRef<number | null>(null);
+  const recognitionRef = useRef<any>(null);
+
+  // Neural Live Caption Engine Logic
+  useEffect(() => {
+    if (!showCaptions || isMini) {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+        recognitionRef.current = null;
+      }
+      setLiveCaption("");
+      return;
+    }
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+
+    recognition.onresult = (event: any) => {
+      let transcript = "";
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        transcript += event.results[i][0].transcript;
+      }
+      setLiveCaption(transcript);
+
+      // Auto-clear logic for "Live" feel
+      if (event.results[event.results.length - 1].isFinal) {
+        setTimeout(() => setLiveCaption(""), 3000);
+      }
+    };
+
+    recognition.onerror = () => {
+      // recognition.start(); // Auto-restart if it fails
+    };
+
+    recognition.onend = () => {
+      if (showCaptions) recognition.start();
+    };
+
+    try {
+      recognition.start();
+      recognitionRef.current = recognition;
+    } catch (e) { }
+
+    return () => {
+      recognition.stop();
+      recognitionRef.current = null;
+    };
+  }, [showCaptions, isMini]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -140,6 +194,17 @@ export const MediaScreen: React.FC<MediaScreenProps> = ({ media, videoRef, onEnd
               <span className="text-white font-black text-[10px] uppercase tracking-[0.4em] animate-pulse">Syncing Stream</span>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Caption Overlay */}
+      {showCaptions && !isMini && liveCaption && (
+        <div className="absolute bottom-32 left-0 w-full px-10 flex justify-center z-40 pointer-events-none animate-in fade-in slide-in-from-bottom-2">
+          <div className="bg-black/70 backdrop-blur-xl border border-white/10 px-6 py-3 rounded-2xl shadow-2xl max-w-[80%] text-center">
+            <p className="text-white font-bold text-sm sm:text-lg leading-snug drop-shadow-md italic">
+              {liveCaption}
+            </p>
+          </div>
         </div>
       )}
 
