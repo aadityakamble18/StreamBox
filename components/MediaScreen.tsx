@@ -170,7 +170,7 @@ export const MediaScreen: React.FC<MediaScreenProps> = ({ media, videoRef, onEnd
       video.removeEventListener('waiting', onWaiting);
       video.removeEventListener('error', onError);
     };
-  }, [media, videoRef]);
+  }, [media?.url, videoRef]);
 
   if (!media) return null;
 

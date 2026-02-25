@@ -1,7 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
-import { IPTVChannel, ChannelActivity, Review } from '../types';
+import { IPTVChannel, ChannelActivity } from '../types';
 import { activityService } from '../services/activityService';
+import { authService } from '../services/authService';
 
 interface ChannelDetailsModalProps {
   channel: IPTVChannel;
@@ -18,30 +18,62 @@ export const ChannelDetailsModal: React.FC<ChannelDetailsModalProps> = ({
 }) => {
   const [activity, setActivity] = useState<ChannelActivity>(activityService.getChannelActivity(channel.url));
   const [reviewText, setReviewText] = useState('');
-  const [rating, setRating] = useState(activity.userRating || 10);
-  const [hoverRating, setHoverRating] = useState<number | null>(null);
+  const [isFocused, setIsFocused] = useState(false);
   const [copyFeedback, setCopyFeedback] = useState(false);
+  const [user, setUser] = useState<any>(null);
 
-  // Sync with global store if it updates while modal is open
   useEffect(() => {
+    authService.getCurrentUser().then(setUser);
+  }, []);
+
+  useEffect(() => {
+    // 1. Initial sync
     setActivity(activityService.getChannelActivity(channel.url));
+
+    // 2. Subscribe to global updates while modal is open
+    const subscription = activityService.subscribe((freshStore) => {
+      if (freshStore[channel.url]) {
+        setActivity(freshStore[channel.url]);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [channel.url]);
 
   const handleLike = async () => {
+    if (!user) return;
     const currentlyLiked = activity.userLiked || false;
-    await activityService.toggleLike(channel.url, currentlyLiked);
-    // Real-time listener will update the store, which will eventually sync back
-    // but for instant feedback we can pivot locally
+    const currentlyDisliked = activity.userDisliked || false;
+
+    // Optimistic Update
     setActivity(prev => ({
       ...prev,
       likes: currentlyLiked ? Math.max(0, prev.likes - 1) : prev.likes + 1,
-      userLiked: !currentlyLiked
+      dislikes: (!currentlyLiked && currentlyDisliked) ? Math.max(0, prev.dislikes - 1) : prev.dislikes,
+      userLiked: !currentlyLiked,
+      userDisliked: !currentlyLiked ? false : currentlyDisliked
     }));
+
+    await activityService.toggleLike(channel.url, currentlyLiked, currentlyDisliked);
   };
 
-  const handleDislike = () => {
-    // For now, toggleLike handles primary social signal
-    // Dislike logic can be expanded in v1.5
+  const handleDislike = async () => {
+    if (!user) return;
+    const currentlyDisliked = activity.userDisliked || false;
+    const currentlyLiked = activity.userLiked || false;
+
+    // Optimistic Update
+    setActivity(prev => ({
+      ...prev,
+      dislikes: currentlyDisliked ? Math.max(0, prev.dislikes - 1) : prev.dislikes + 1,
+      likes: (!currentlyDisliked && currentlyLiked) ? Math.max(0, prev.likes - 1) : prev.likes,
+      userDisliked: !currentlyDisliked,
+      userLiked: !currentlyDisliked ? false : currentlyLiked
+    }));
+
+    await activityService.toggleDislike(channel.url, currentlyDisliked, currentlyLiked);
   };
 
   const handleShare = async () => {
@@ -68,171 +100,200 @@ export const ChannelDetailsModal: React.FC<ChannelDetailsModalProps> = ({
     }
   };
 
-  const handleQuickRate = async (val: number) => {
-    setRating(val);
-    await activityService.addReview(channel.url, reviewText, val);
-  };
-
-  const submitReview = async (e: React.FormEvent) => {
+  const submitComment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!reviewText.trim()) return;
-    await activityService.addReview(channel.url, reviewText, rating);
+    if (!user || !reviewText.trim()) return;
+
+    const text = reviewText.trim();
+    const newComment: any = {
+      id: 'temp-' + Date.now(),
+      userId: user.id,
+      username: user.username,
+      text,
+      rating: 10,
+      date: new Date().toISOString()
+    };
+
+    // Optimistic Update: Add to local state immediately
+    setActivity(prev => ({
+      ...prev,
+      reviews: [newComment, ...prev.reviews]
+    }));
+
     setReviewText('');
+    setIsFocused(false);
+
+    try {
+      await activityService.addReview(channel.url, text, 10, { id: user.id, username: user.username });
+    } catch (err) {
+      console.error("Failed to post comment", err);
+    }
   };
 
-  const avgRating = activity.reviews.length > 0
-    ? (activity.reviews.reduce((acc, r) => acc + r.rating, 0) / activity.reviews.length).toFixed(1)
-    : 'N/A';
+  const timeAgo = (date: string) => {
+    const now = new Date().getTime();
+    const past = new Date(date).getTime();
+    if (isNaN(past)) return "recently";
+
+    const seconds = Math.floor((now - past) / 1000);
+    if (seconds < 5) return "just now";
+
+    let interval = seconds / 31536000;
+    if (interval > 1) return Math.floor(interval) + " years ago";
+    interval = seconds / 2592000;
+    if (interval > 1) return Math.floor(interval) + " months ago";
+    interval = seconds / 86400;
+    if (interval > 1) return Math.floor(interval) + " days ago";
+    interval = seconds / 3600;
+    if (interval > 1) return Math.floor(interval) + " hours ago";
+    interval = seconds / 60;
+    if (interval > 1) return Math.floor(interval) + " minutes ago";
+    return Math.floor(seconds) + " seconds ago";
+  };
 
   return (
-    <div className={`fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200 ${isMini ? 'pointer-events-auto' : ''}`}>
-      <div className={`bg-zinc-900 w-full max-w-2xl max-h-[95vh] sm:max-h-[90vh] rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl flex flex-col border border-zinc-800 animate-in zoom-in-95 duration-300 ${isMini ? 'border-orange-500/30' : ''}`}>
-        {/* Header Section */}
-        <div className={`p-4 sm:p-8 border-b border-zinc-800 bg-gradient-to-br from-zinc-800/50 to-transparent flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 relative`}>
-          <div className="w-16 h-16 sm:w-24 sm:h-24 bg-black rounded-xl sm:rounded-2xl border border-zinc-700 flex items-center justify-center p-2 shrink-0">
-            {channel.logo ? (
-              <img src={channel.logo} alt="" className="max-w-full max-h-full object-contain" />
-            ) : (
-              <span className="text-2xl sm:text-3xl">📡</span>
-            )}
-          </div>
-          <div className="flex-1 min-w-0 w-full text-center sm:text-left">
-            <div className="flex justify-between items-center sm:items-start gap-4 mb-2">
-              <h2 className="text-lg sm:text-2xl font-black text-white leading-tight truncate flex-1">{channel.name}</h2>
-              <button
-                onClick={handleShare}
-                className={`p-2 rounded-xl transition-all shrink-0 ${copyFeedback ? 'bg-green-600 text-white' : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-400'}`}
-              >
-                {copyFeedback ? (
-                  <svg viewBox="0 0 24 24" className="w-4 h-4 sm:w-5 sm:h-5 fill-current"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /></svg>
-                ) : (
-                  <svg viewBox="0 0 24 24" className="w-4 h-4 sm:w-5 sm:h-5 fill-current">
-                    <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z" />
-                  </svg>
-                )}
-              </button>
+    <div className={`fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200`}>
+      <div className="bg-[#0f0f0f] w-full max-w-2xl max-h-[95vh] sm:max-h-[85vh] rounded-2xl overflow-hidden shadow-2xl flex flex-col border border-zinc-800/50 animate-in zoom-in-95 duration-300">
+
+        {/* YT Style Top Banner / Info */}
+        <div className="p-6 sm:p-8 flex flex-col gap-6">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 bg-zinc-900 rounded-2xl border border-zinc-800 flex items-center justify-center p-3 shrink-0 shadow-xl overflow-hidden">
+              {channel.logo ? (
+                <img src={channel.logo} alt="" className="max-w-full max-h-full object-contain" />
+              ) : (
+                <span className="text-3xl">📡</span>
+              )}
             </div>
-            <div className="flex items-center justify-center sm:justify-start gap-2 mb-4">
-              <p className="text-zinc-500 text-[10px] sm:text-sm uppercase tracking-widest font-bold">{channel.group}</p>
-              <span className="text-zinc-700 font-bold">•</span>
-              <p className="text-zinc-500 text-[9px] sm:text-xs font-mono">{activity.views || 0} Visits</p>
-            </div>
-            <div className="flex items-center justify-center sm:justify-start gap-3 sm:gap-4">
-              {!isMini && (
+            <div className="flex-1 min-w-0 text-center sm:text-left">
+              <h2 className="text-xl sm:text-2xl font-black text-white leading-tight mb-2 truncate">{channel.name}</h2>
+              <div className="flex items-center justify-center sm:justify-start gap-2 mb-6">
+                <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">{channel.group}</span>
+                <span className="w-1 h-1 bg-zinc-700 rounded-full"></span>
+                <span className="text-xs font-mono text-zinc-500">{activity.views || 0} visits</span>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3">
                 <button
                   onClick={onPlay}
-                  className="bg-orange-600 hover:bg-orange-500 text-white font-bold px-6 sm:px-8 py-2 rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-orange-600/20 text-xs sm:text-base"
+                  className="bg-white hover:bg-zinc-200 text-black font-bold h-10 px-6 rounded-full transition-all flex items-center gap-2 text-sm shadow-lg active:scale-95"
                 >
-                  <svg viewBox="0 0 24 24" className="w-4 h-4 sm:w-5 sm:h-5 fill-current"><path d="M8 5v14l11-7z" /></svg>
-                  Watch
+                  <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current"><path d="M8 5v14l11-7z" /></svg>
+                  Watch Now
                 </button>
-              )}
-              <button onClick={onClose} className="text-zinc-500 hover:text-white text-[10px] sm:text-sm font-bold uppercase tracking-wider px-2 sm:px-4">
-                {isMini ? 'Return' : 'Back'}
-              </button>
+
+                <div className="flex items-center bg-zinc-800/60 rounded-full h-10 p-1">
+                  <button
+                    onClick={handleLike}
+                    className={`flex items-center gap-2 px-4 h-8 rounded-l-full transition-all hover:bg-zinc-700/60 border-r border-zinc-700/50 ${activity.userLiked ? 'text-orange-500' : 'text-zinc-300'}`}
+                  >
+                    <svg viewBox="0 0 24 24" className={`w-5 h-5 ${activity.userLiked ? 'fill-current' : 'fill-none stroke-current stroke-2'}`}><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" /></svg>
+                    <span className="text-xs font-black">{activity.likes}</span>
+                  </button>
+                  <button
+                    onClick={handleDislike}
+                    className={`flex items-center px-4 h-8 rounded-r-full transition-all hover:bg-zinc-700/60 ${activity.userDisliked ? 'text-orange-500' : 'text-zinc-300'}`}
+                  >
+                    <svg viewBox="0 0 24 24" className={`w-5 h-5 ${activity.userDisliked ? 'fill-current' : 'fill-none stroke-current stroke-2'}`}><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zM17 2h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-3" /></svg>
+                  </button>
+                </div>
+
+                <button
+                  onClick={handleShare}
+                  className="flex items-center gap-2 bg-zinc-800/60 hover:bg-zinc-700/60 text-white font-bold h-10 px-5 rounded-full transition-all text-xs active:scale-95"
+                >
+                  <svg viewBox="0 0 24 24" className="w-4 h-4 fill-none stroke-current stroke-2"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>
+                  {copyFeedback ? 'Copied' : 'Share'}
+                </button>
+
+                <button
+                  onClick={onClose}
+                  className="w-10 h-10 flex items-center justify-center rounded-full bg-zinc-800/40 hover:bg-zinc-700/60 text-zinc-400 hover:text-white transition-all ml-auto"
+                >
+                  <svg viewBox="0 0 24 24" className="w-6 h-6 fill-current"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" /></svg>
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 sm:p-8 custom-scrollbar space-y-6 sm:space-y-8">
-          {/* Quick Stats */}
-          <div className="grid grid-cols-1 xs:grid-cols-2 gap-4 sm:gap-6">
-            <div className="bg-black/20 p-4 sm:p-6 rounded-2xl border border-zinc-800/50 flex flex-col items-center justify-center text-center">
-              <p className="text-[8px] sm:text-[10px] text-zinc-500 uppercase font-black tracking-widest mb-2">Rating</p>
-              <div className="flex items-baseline gap-1">
-                <span className="text-3xl sm:text-5xl font-black text-orange-500">{avgRating}</span>
-                <span className="text-zinc-600 text-xs sm:text-sm font-bold">/ 10</span>
+        {/* Scrollable Comments Region */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar border-t border-zinc-800/50 bg-[#0f0f0f]">
+          <div className="p-6 sm:p-8 space-y-8">
+            {/* Comment Stats Header */}
+            <div className="flex items-center gap-6">
+              <h3 className="text-sm sm:text-lg font-bold text-white tracking-tight">{activity.reviews.length} Comments</h3>
+              <div className="flex items-center gap-2 text-xs font-bold text-white">
+                <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current"><path d="M15 15H3v-1h12v1zm6-6H3v1h18V9zM15 3H3v1h12V3z" /></svg>
+                Sort by
               </div>
             </div>
 
-            <div className="bg-black/20 p-4 sm:p-6 rounded-2xl border border-zinc-800/50 flex flex-col justify-center gap-3 sm:gap-4">
-              <p className="text-[8px] sm:text-[10px] text-zinc-500 uppercase font-black tracking-widest mb-1 text-center">Feedback</p>
-              <div className="flex gap-2 sm:gap-3">
-                <button
-                  onClick={handleLike}
-                  className={`flex-1 flex items-center justify-center gap-1 sm:gap-2 py-2 sm:py-3 rounded-xl border transition-all ${activity.userLiked ? 'bg-orange-600 border-orange-500 text-white shadow-lg' : 'bg-zinc-800/50 border-zinc-700 text-zinc-400'
-                    }`}
-                >
-                  <svg viewBox="0 0 24 24" className="w-4 h-4 sm:w-5 sm:h-5 fill-current"><path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.75 0 1.41-.41 1.75-1.03l3.51-8.19c.16-.41.25-.86.25-1.32v-1.5z" /></svg>
-                  <span className="font-bold text-xs sm:text-sm">{activity.likes}</span>
-                </button>
-                <button
-                  onClick={handleDislike}
-                  className={`flex-1 flex items-center justify-center gap-1 sm:gap-2 py-2 sm:py-3 rounded-xl border transition-all ${activity.userDisliked ? 'bg-zinc-100 border-white text-black' : 'bg-zinc-800/50 border-zinc-700 text-zinc-400'
-                    }`}
-                >
-                  <svg viewBox="0 0 24 24" className="w-4 h-4 sm:w-5 sm:h-5 fill-current"><path d="M15 3H6c-.83 0-1.54.5-1.84 1.22l-3.02 7.05c-.09.23-.14.47-.14.73v2c0 1.1.9 2 2 2h6.31l-.95 4.57-.03.32c0 .41.17.79.44 1.06L9.83 23l6.59-6.59c.36-.36.58-.86.58-1.41V5c0-1.1-.9-2-2-2zm4 0v12h4V3h-4z" /></svg>
-                  <span className="font-bold text-xs sm:text-sm">{activity.dislikes}</span>
-                </button>
+            {/* Comment Input Section */}
+            <div className="flex gap-4">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-zinc-700 to-zinc-900 flex items-center justify-center text-white text-xs font-black uppercase shrink-0">
+                {user?.username?.[0] || '?'}
+              </div>
+              <div className="flex-1 flex flex-col gap-2">
+                <input
+                  type="text"
+                  value={reviewText}
+                  onFocus={() => setIsFocused(true)}
+                  onChange={(e) => setReviewText(e.target.value)}
+                  placeholder={user ? "Add a comment..." : "Sign in to join the conversation"}
+                  disabled={!user}
+                  className="w-full bg-transparent border-b border-zinc-800 py-2 text-sm text-white focus:outline-none focus:border-white transition-all placeholder:text-zinc-600"
+                />
+                {isFocused && (
+                  <div className="flex justify-end gap-2 mt-2 animate-in slide-in-from-top-1 duration-200">
+                    <button
+                      onClick={() => { setIsFocused(false); setReviewText(''); }}
+                      className="px-4 py-2 rounded-full text-xs font-bold text-zinc-300 hover:bg-zinc-800 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={submitComment}
+                      disabled={!reviewText.trim()}
+                      className="px-4 py-2 rounded-full text-xs font-bold bg-[#3ea6ff] hover:bg-[#65b8ff] text-black disabled:bg-zinc-800 disabled:text-zinc-600 transition-all"
+                    >
+                      Comment
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
-          </div>
 
-          {/* Interactive Rating */}
-          <div className="bg-zinc-800/20 border border-zinc-800/50 rounded-xl sm:rounded-2xl p-4 sm:p-6">
-            <h3 className="text-[10px] sm:text-sm font-bold text-white uppercase tracking-widest mb-4 text-center">Your Rating</h3>
-            <div className="flex gap-1 justify-center mb-6 overflow-x-auto no-scrollbar pb-2">
-              {[...Array(10)].map((_, i) => {
-                const val = i + 1;
-                const isActive = (hoverRating !== null ? hoverRating >= val : (rating || 0) >= val);
-                return (
-                  <button
-                    key={i}
-                    type="button"
-                    onMouseEnter={() => setHoverRating(val)}
-                    onMouseLeave={() => setHoverRating(null)}
-                    onClick={() => handleQuickRate(val)}
-                    className={`shrink-0 w-8 h-8 sm:w-10 sm:h-12 rounded-lg transition-all flex items-center justify-center ${isActive
-                        ? 'bg-orange-600 text-white'
-                        : 'bg-zinc-800/50 text-zinc-600'
-                      }`}
-                  >
-                    <span className="text-[10px] sm:text-xs font-black">{val}</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="space-y-4">
-              <textarea
-                value={reviewText}
-                onChange={(e) => setReviewText(e.target.value)}
-                placeholder="Write a quick review..."
-                className="w-full bg-black/40 border border-zinc-800 rounded-xl p-3 sm:p-4 text-xs sm:text-sm text-white focus:outline-none focus:border-orange-500/50 min-h-[80px] transition-colors"
-              />
-              <button
-                onClick={submitReview}
-                className="w-full bg-zinc-100 text-black font-black uppercase text-[8px] sm:text-[10px] tracking-[0.2em] px-6 py-3 sm:py-4 rounded-xl hover:bg-white transition-all disabled:opacity-30"
-                disabled={!reviewText.trim()}
-              >
-                Submit Review
-              </button>
-            </div>
-          </div>
-
-          {/* Reviews List */}
-          <div className="space-y-4">
-            <h3 className="text-xs sm:text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2">
-              Recent Reviews
-              <span className="text-[8px] sm:text-[10px] text-zinc-600 font-mono">({activity.reviews.length})</span>
-            </h3>
-            {activity.reviews.length === 0 ? (
-              <p className="text-zinc-700 italic text-xs sm:text-sm text-center py-4">Be the first to review.</p>
-            ) : (
-              <div className="space-y-3">
-                {activity.reviews.slice(0, 5).map(review => (
-                  <div key={review.id} className="bg-zinc-800/30 border border-zinc-800/50 rounded-xl p-3 sm:p-4 flex items-start gap-3 sm:gap-4">
-                    <div className="bg-orange-600 text-white text-[8px] sm:text-[10px] font-black px-1.5 py-0.5 sm:px-2 sm:py-1 rounded h-fit shrink-0">
-                      {review.rating}
+            {/* Comment List */}
+            <div className="space-y-6 sm:space-y-8 pb-10">
+              {activity.reviews.map(comment => (
+                <div key={comment.id} className="flex gap-4 group">
+                  <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 text-xs font-bold uppercase shrink-0 group-hover:bg-orange-600/20 group-hover:text-orange-500 transition-colors">
+                    {comment.username?.[0] || 'A'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs font-bold text-white tracking-tight">@{comment.username}</span>
+                      <span className="text-[10px] text-zinc-500 font-medium tracking-tight">{timeAgo(comment.date)}</span>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-zinc-300 text-xs sm:text-sm leading-relaxed mb-1">{review.text}</p>
-                      <p className="text-zinc-600 text-[8px] uppercase font-mono">{new Date(review.date).toLocaleDateString()}</p>
+                    <p className="text-sm text-zinc-200 leading-relaxed mb-3 pr-4">{comment.text}</p>
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-1 cursor-pointer group/action">
+                        <svg viewBox="0 0 24 24" className="w-4 h-4 fill-none stroke-zinc-500 group-hover/action:stroke-white stroke-2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" /></svg>
+                        <span className="text-[10px] font-bold text-zinc-500 group-hover/action:text-white">Helpful</span>
+                      </div>
+                      <button className="text-[10px] font-bold text-zinc-500 hover:text-white p-1 hover:bg-zinc-800 rounded">Reply</button>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
+                </div>
+              ))}
+              {activity.reviews.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-10 opacity-30">
+                  <svg viewBox="0 0 24 24" className="w-16 h-16 fill-current text-zinc-600 mb-4"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" /></svg>
+                  <p className="text-sm font-bold text-zinc-400">No comments yet. Start the conversation.</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

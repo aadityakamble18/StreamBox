@@ -45,51 +45,94 @@ export const activityService = {
   },
 
   async incrementViews(url: string) {
-    // RPC or direct update. For simplicity in v1.4.0, we'll do an upsert logic
-    const { data: existing } = await supabase
-      .from(ACTIVITY_TABLE)
-      .select('*')
-      .eq('url', url)
-      .single();
-
-    if (existing) {
-      await supabase
-        .from(ACTIVITY_TABLE)
-        .update({ views: (existing.views || 0) + 1 })
-        .eq('url', url);
+    // Optimistic local update
+    if (this.privateStore[url]) {
+      this.privateStore[url].views = (this.privateStore[url].views || 0) + 1;
     } else {
-      await supabase
+      this.privateStore[url] = { likes: 0, dislikes: 0, views: 1, reviews: [] };
+    }
+
+    try {
+      const { data: existing } = await supabase
         .from(ACTIVITY_TABLE)
-        .insert([{ url, views: 1, likes: 0, dislikes: 0, reviews: [] }]);
+        .select('views')
+        .eq('url', url)
+        .maybeSingle();
+
+      if (existing) {
+        await supabase
+          .from(ACTIVITY_TABLE)
+          .update({ views: (existing.views || 0) + 1 })
+          .eq('url', url);
+      } else {
+        await supabase
+          .from(ACTIVITY_TABLE)
+          .insert([{ url, views: 1, likes: 0, dislikes: 0, reviews: [] }]);
+      }
+      // Re-fetch to ensure sync with anyone else's clicks
+      await this.fetchAllActivity();
+    } catch (err) {
+      console.error("Global View Sync Error:", err);
     }
   },
 
-  async toggleLike(url: string, currentlyLiked: boolean) {
+  async toggleLike(url: string, currentlyLiked: boolean, currentlyDisliked: boolean) {
     const { data: existing } = await supabase
       .from(ACTIVITY_TABLE)
       .select('*')
       .eq('url', url)
-      .single();
+      .maybeSingle();
 
-    if (!existing) return;
-
-    const newLikes = currentlyLiked ? Math.max(0, existing.likes - 1) : existing.likes + 1;
-
-    await supabase
-      .from(ACTIVITY_TABLE)
-      .update({ likes: newLikes })
-      .eq('url', url);
+    if (!existing) {
+      await supabase.from(ACTIVITY_TABLE).insert([{ url, likes: 1, dislikes: 0, views: 0, reviews: [] }]);
+    } else {
+      let newLikes = currentlyLiked ? Math.max(0, existing.likes - 1) : existing.likes + 1;
+      let newDislikes = existing.dislikes;
+      if (!currentlyLiked && currentlyDisliked) {
+        newDislikes = Math.max(0, existing.dislikes - 1);
+      }
+      await supabase
+        .from(ACTIVITY_TABLE)
+        .update({ likes: newLikes, dislikes: newDislikes })
+        .eq('url', url);
+    }
+    await this.fetchAllActivity();
   },
 
-  async addReview(url: string, text: string, rating: number) {
+  async toggleDislike(url: string, currentlyDisliked: boolean, currentlyLiked: boolean) {
     const { data: existing } = await supabase
       .from(ACTIVITY_TABLE)
       .select('*')
       .eq('url', url)
-      .single();
+      .maybeSingle();
+
+    if (!existing) {
+      await supabase.from(ACTIVITY_TABLE).insert([{ url, dislikes: 1, likes: 0, views: 0, reviews: [] }]);
+    } else {
+      let newDislikes = currentlyDisliked ? Math.max(0, existing.dislikes - 1) : existing.dislikes + 1;
+      let newLikes = existing.likes;
+      if (!currentlyDisliked && currentlyLiked) {
+        newLikes = Math.max(0, existing.likes - 1);
+      }
+      await supabase
+        .from(ACTIVITY_TABLE)
+        .update({ dislikes: newDislikes, likes: newLikes })
+        .eq('url', url);
+    }
+    await this.fetchAllActivity();
+  },
+
+  async addReview(url: string, text: string, rating: number, user: { id: string, username: string }) {
+    const { data: existing } = await supabase
+      .from(ACTIVITY_TABLE)
+      .select('*')
+      .eq('url', url)
+      .maybeSingle();
 
     const newReview: Review = {
       id: Math.random().toString(36).substring(7),
+      userId: user.id,
+      username: user.username,
       text,
       rating,
       date: new Date().toISOString()
@@ -106,6 +149,7 @@ export const activityService = {
         .from(ACTIVITY_TABLE)
         .insert([{ url, reviews: [newReview], likes: 0, dislikes: 0, views: 0 }]);
     }
+    await this.fetchAllActivity();
   },
 
   subscribe(callback: (store: ActivityStore) => void) {

@@ -19,8 +19,17 @@ export interface IPTVChannel {
   language: string;
 }
 
+export interface Profile {
+  id: string;
+  username: string;
+  avatar_url?: string;
+  created_at?: string;
+}
+
 export interface Review {
   id: string;
+  userId: string;
+  username: string;
   text: string;
   rating: number; // 1-10
   date: string;
