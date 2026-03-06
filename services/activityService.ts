@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 import { ActivityStore, ChannelActivity, Review } from '../types';
 
@@ -12,6 +11,11 @@ const ACTIVITY_TABLE = 'channel_activities';
 export const activityService = {
   // Local cache to keep the UI snappy
   privateStore: {} as ActivityStore,
+  listeners: [] as ((store: ActivityStore) => void)[],
+
+  notify() {
+    this.listeners.forEach(cb => cb({ ...this.privateStore }));
+  },
 
   async fetchAllActivity(): Promise<ActivityStore> {
     const { data, error } = await supabase
@@ -19,7 +23,7 @@ export const activityService = {
       .select('*');
 
     if (error) {
-      console.error("Supabase Fetch Error:", error);
+      console.warn("Supabase Fetch Error (Check RLS Policies):", error);
       return {};
     }
 
@@ -33,6 +37,7 @@ export const activityService = {
       };
     });
     this.privateStore = store;
+    this.notify();
     return store;
   },
 
@@ -45,34 +50,40 @@ export const activityService = {
   },
 
   async incrementViews(url: string) {
-    // Optimistic local update
-    if (this.privateStore[url]) {
-      this.privateStore[url].views = (this.privateStore[url].views || 0) + 1;
-    } else {
-      this.privateStore[url] = { likes: 0, dislikes: 0, views: 1, reviews: [] };
+    // 1. Optimistic local update
+    if (!this.privateStore[url]) {
+      this.privateStore[url] = { likes: 0, dislikes: 0, views: 0, reviews: [] };
     }
+    this.privateStore[url].views += 1;
+    this.notify();
 
     try {
-      const { data: existing } = await supabase
+      // 2. Try to get existing views directly
+      const { data: existing, error: fetchError } = await supabase
         .from(ACTIVITY_TABLE)
         .select('views')
         .eq('url', url)
         .maybeSingle();
 
+      if (fetchError) throw fetchError;
+
       if (existing) {
-        await supabase
+        const { error: updateError } = await supabase
           .from(ACTIVITY_TABLE)
           .update({ views: (existing.views || 0) + 1 })
           .eq('url', url);
+        if (updateError) throw updateError;
       } else {
-        await supabase
+        const { error: insertError } = await supabase
           .from(ACTIVITY_TABLE)
           .insert([{ url, views: 1, likes: 0, dislikes: 0, reviews: [] }]);
+        if (insertError) throw insertError;
       }
-      // Re-fetch to ensure sync with anyone else's clicks
-      await this.fetchAllActivity();
+      
+      // 3. Background sync
+      this.fetchAllActivity();
     } catch (err) {
-      console.error("Global View Sync Error:", err);
+      console.error("View Sync Failure (Ensure table 'channel_activities' exists and has public RLS policies):", err);
     }
   },
 
@@ -153,12 +164,20 @@ export const activityService = {
   },
 
   subscribe(callback: (store: ActivityStore) => void) {
-    return supabase
+    this.listeners.push(callback);
+    
+    const channel = supabase
       .channel('public:channel_activities')
       .on('postgres_changes', { event: '*', schema: 'public', table: ACTIVITY_TABLE }, async () => {
-        const freshStore = await this.fetchAllActivity();
-        callback(freshStore);
+        await this.fetchAllActivity();
       })
       .subscribe();
+
+    return {
+      unsubscribe: () => {
+        this.listeners = this.listeners.filter(l => l !== callback);
+        supabase.removeChannel(channel);
+      }
+    };
   }
 };
