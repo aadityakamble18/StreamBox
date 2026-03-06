@@ -131,11 +131,37 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onClose }) => {
                     </div>
                 </div>
 
+                {/* Legal & Transparency Section */}
+                <div className="mt-32 border-t border-zinc-900 pt-20 space-y-16">
+                    <section className="space-y-6">
+                        <h3 className="text-orange-500 font-black uppercase tracking-[0.3em] text-[10px]">Transparency & Legal</h3>
+                        <h2 className="text-3xl font-black text-white">Disclaimer</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                            <p className="text-zinc-500 text-sm leading-relaxed">
+                                StreamBox is an <span className="text-zinc-300 font-bold">Open-Source Educational Project</span> developed by Aaditya Kamble. It is designed as a technical demonstration of high-performance web-based media rendering using React, Portals, and HLS.js.
+                            </p>
+                            <p className="text-zinc-500 text-sm leading-relaxed">
+                                <span className="text-white font-bold">Content Hosting:</span> StreamBox does not host, store, or distribute any media files. It functions exclusively as a client-side player for publicly available M3U/HLS streams provided by third-party metadata repositories.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section className="space-y-6 bg-orange-600/5 p-8 rounded-3xl border border-orange-600/10">
+                        <h4 className="text-orange-500 font-black uppercase tracking-widest text-xs">Copyright Policy (DMCA)</h4>
+                        <p className="text-zinc-400 text-xs leading-relaxed">
+                            StreamBox respects the intellectual property rights of others. If you believe that your copyrighted work is being accessed through this player in a way that constitutes infringement, please note that we do not control the source streams. We recommend contacting the source stream provider directly. However, if you wish to report a specific link within our educational UI, please reach out via GitHub.
+                        </p>
+                    </section>
+                </div>
+
                 <footer className="mt-32 pt-12 border-t border-zinc-900 flex flex-col sm:flex-row justify-between items-center gap-6 text-zinc-600">
-                    <p className="text-xs font-mono uppercase tracking-widest">© {new Date().getFullYear()} StreamBox Engine v1.8.1</p>
+                    <div className="flex flex-col gap-2 items-center sm:items-start">
+                        <p className="text-[10px] font-mono uppercase tracking-widest">© {new Date().getFullYear()} StreamBox Engine v1.8.1</p>
+                        <p className="text-[9px] text-zinc-800 uppercase font-bold tracking-tighter">Developed by Aaditya Kamble • IIT Jodhpur</p>
+                    </div>
                     <div className="flex gap-8">
-                        <a href="https://github.com/aadityakamble18/StreamBox" className="hover:text-white transition-colors text-xs font-bold uppercase tracking-widest">Source Code</a>
-                        <a href="https://github.com/aadityakamble18" className="hover:text-white transition-colors text-xs font-bold uppercase tracking-widest">Creator Profile</a>
+                        <a href="https://github.com/aadityakamble18/StreamBox" className="hover:text-white transition-colors text-[10px] font-bold uppercase tracking-widest">GitHub Project</a>
+                        <a href="#" className="hover:text-white transition-colors text-[10px] font-bold uppercase tracking-widest">Privacy Policy</a>
                     </div>
                 </footer>
             </div>

@@ -9,11 +9,10 @@ interface AuthPageProps {
 
 export const AuthPage: React.FC<AuthPageProps> = ({ onClose, onSuccess }) => {
     const [isLogin, setIsLogin] = useState(true);
-    const [step, setStep] = useState<'auth' | 'otp'>('auth');
+    const [step, setStep] = useState<'auth' | 'confirm'>('auth');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [username, setUsername] = useState('');
-    const [otp, setOtp] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -33,31 +32,11 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onClose, onSuccess }) => {
                 if (!username) throw new Error("Username is required");
                 const data = await authService.signUp(email, password, username);
                 if (data.user) {
-                    // Move to OTP step
-                    setStep('otp');
+                    setStep('confirm');
                 }
             }
         } catch (err: any) {
             setError(err.message || "An authentication error occurred");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleVerifyOtp = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setLoading(true);
-        setError(null);
-
-        try {
-            const data = await authService.verifyOtp(email, otp, 'signup');
-            if (data.user) {
-                await authService.ensureProfile(data.user.id, username);
-                const userWithProfile = await authService.getCurrentUser();
-                onSuccess(userWithProfile);
-            }
-        } catch (err: any) {
-            setError(err.message || "Invalid or expired OTP");
         } finally {
             setLoading(false);
         }
@@ -76,13 +55,13 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onClose, onSuccess }) => {
                 {/* Navigation / Header */}
                 <div className="flex items-center justify-between mb-12">
                     <button
-                        onClick={step === 'otp' ? () => setStep('auth') : onClose}
+                        onClick={step === 'confirm' ? () => setStep('auth') : onClose}
                         className="flex items-center gap-2 text-zinc-500 hover:text-white transition-all group"
                     >
                         <div className="w-8 h-8 rounded-full border border-zinc-800 flex items-center justify-center group-hover:border-orange-500 transition-colors">
                             <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" /></svg>
                         </div>
-                        <span className="text-xs font-black uppercase tracking-widest">{step === 'otp' ? 'Back' : 'Return Home'}</span>
+                        <span className="text-xs font-black uppercase tracking-widest">{step === 'confirm' ? 'Back' : 'Return Home'}</span>
                     </button>
 
                     <h1 className="text-xl font-black italic tracking-tighter text-white">
@@ -93,10 +72,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onClose, onSuccess }) => {
                 <div className="bg-zinc-950/50 backdrop-blur-3xl border border-zinc-900 p-8 sm:p-12 rounded-[2.5rem] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.8)] border-t-zinc-800/50">
                     <div className="mb-10 text-center">
                         <h2 className="text-4xl font-black italic tracking-tighter text-white mb-2 leading-none uppercase">
-                            {step === 'otp' ? 'Verify ID' : (isLogin ? 'Welcome Back' : 'Create Profile')}
+                            {step === 'confirm' ? 'Check Email' : (isLogin ? 'Welcome Back' : 'Create Profile')}
                         </h2>
                         <p className="text-[10px] text-zinc-500 font-mono uppercase tracking-[0.3em]">
-                            {step === 'otp' ? 'Authorization Required' : `Gate ${isLogin ? '01' : '02'} • Security Verified`}
+                            {step === 'confirm' ? 'Verification Sent' : `StreamBox Account • ${isLogin ? 'Sign In' : 'Register'}`}
                         </p>
                     </div>
 
@@ -104,32 +83,32 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onClose, onSuccess }) => {
                         <form onSubmit={handleSubmit} className="space-y-5">
                             {!isLogin && (
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-zinc-600 uppercase tracking-widest ml-1">Protocol Nickname</label>
+                                    <label className="text-[10px] font-black text-zinc-600 uppercase tracking-widest ml-1">Username</label>
                                     <input
                                         type="text"
                                         required
                                         value={username}
                                         onChange={(e) => setUsername(e.target.value)}
                                         className="w-full bg-black/40 border border-zinc-800 text-white px-6 py-4 rounded-2xl focus:outline-none focus:border-orange-500/50 transition-all placeholder:text-zinc-800 text-sm"
-                                        placeholder="TheStreamer"
+                                        placeholder="Display Name"
                                     />
                                 </div>
                             )}
 
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-zinc-600 uppercase tracking-widest ml-1">Cloud Interface</label>
+                                <label className="text-[10px] font-black text-zinc-600 uppercase tracking-widest ml-1">Email Address</label>
                                 <input
                                     type="email"
                                     required
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     className="w-full bg-black/40 border border-zinc-800 text-white px-6 py-4 rounded-2xl focus:outline-none focus:border-orange-500/50 transition-all placeholder:text-zinc-800 text-sm"
-                                    placeholder="name@nexus.com"
+                                    placeholder="name@example.com"
                                 />
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-zinc-600 uppercase tracking-widest ml-1">Access Sequence</label>
+                                <label className="text-[10px] font-black text-zinc-600 uppercase tracking-widest ml-1">Password</label>
                                 <input
                                     type="password"
                                     required
@@ -151,39 +130,27 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onClose, onSuccess }) => {
                                 disabled={loading}
                                 className="w-full bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-500 hover:to-orange-600 text-white font-black uppercase tracking-[0.2em] py-5 rounded-2xl transition-all shadow-[0_20px_50px_-15px_rgba(234,88,12,0.4)] disabled:opacity-50 text-xs mt-4 active:scale-95"
                             >
-                                {loading ? 'Processing...' : (isLogin ? 'Initialize Session' : 'Generate ID')}
+                                {loading ? 'Processing...' : (isLogin ? 'Sign In Now' : 'Create My Account')}
                             </button>
                         </form>
                     ) : (
-                        <form onSubmit={handleVerifyOtp} className="space-y-6">
-                            <div className="space-y-4">
-                                <p className="text-zinc-400 text-xs text-center leading-relaxed">
-                                    Enter the 6-digit synchronization code sent to <span className="text-white font-bold">{email}</span>
-                                </p>
-                                <input
-                                    type="text"
-                                    required
-                                    maxLength={6}
-                                    value={otp}
-                                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                                    className="w-full bg-black/40 border border-zinc-800 text-white px-6 py-5 rounded-2xl focus:outline-none focus:border-orange-500/50 transition-all text-center text-3xl font-black tracking-[0.5em] placeholder:text-zinc-900"
-                                    placeholder="000000"
-                                />
-                            </div>
-
-                            {error && (
-                                <div className="p-4 bg-orange-600/5 border border-orange-600/20 rounded-2xl">
-                                    <p className="text-[10px] text-orange-500 font-bold text-center uppercase tracking-widest">{error}</p>
+                        <div className="space-y-8 text-center py-4">
+                            <div className="relative inline-flex items-center justify-center">
+                                <div className="absolute inset-0 bg-orange-600/20 blur-2xl rounded-full"></div>
+                                <div className="relative w-20 h-20 rounded-full border border-orange-500/30 flex items-center justify-center">
+                                    <svg viewBox="0 0 24 24" className="w-10 h-10 fill-orange-500 animate-pulse"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" /></svg>
                                 </div>
-                            )}
-
-                            <button
-                                type="submit"
-                                disabled={loading || otp.length < 6}
-                                className="w-full bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-500 hover:to-orange-600 text-white font-black uppercase tracking-[0.2em] py-5 rounded-2xl transition-all shadow-[0_20px_50px_-15px_rgba(234,88,12,0.4)] disabled:opacity-50 text-xs active:scale-95"
-                            >
-                                {loading ? 'Verifying...' : 'Finalize Encryption'}
-                            </button>
+                            </div>
+                            
+                            <div className="space-y-4">
+                                <p className="text-zinc-200 text-sm font-medium leading-relaxed px-4">
+                                    We've sent a secure verification link to <br/>
+                                    <span className="text-orange-500 font-black">{email}</span>
+                                </p>
+                                <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-widest leading-relaxed">
+                                    Click the link in the email to <br/> activate your session automatically.
+                                </p>
+                            </div>
 
                             <button
                                 type="button"
@@ -192,7 +159,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onClose, onSuccess }) => {
                             >
                                 Use different email
                             </button>
-                        </form>
+                        </div>
                     )}
 
                     {step === 'auth' && (
@@ -200,9 +167,13 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onClose, onSuccess }) => {
                             onClick={() => { setIsLogin(!isLogin); setError(null); }}
                             className="w-full mt-10 text-[10px] text-zinc-600 hover:text-orange-500 transition-colors uppercase font-black tracking-widest text-center"
                         >
-                            {isLogin ? "Need a new access ID? Register" : "Existing ID verified? Login here"}
+                            {isLogin ? "New to StreamBox? Create Account" : "Already have an account? Sign In"}
                         </button>
                     )}
+
+                    <p className="mt-8 text-[9px] text-zinc-700 text-center leading-relaxed">
+                        By continuing, you acknowledge that StreamBox is an educational tool and you agree to our <span className="text-zinc-500 underline cursor-pointer">Terms</span> and <span className="text-zinc-500 underline cursor-pointer">Privacy Notice</span>.
+                    </p>
                 </div>
 
                 {/* Footer Info */}

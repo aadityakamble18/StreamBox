@@ -5,14 +5,14 @@ import { activityService } from '../services/activityService';
 import { authService } from '../services/authService';
 import { MediaScreen } from './MediaScreen';
 
-interface YouTubeWatchProps {
+interface StreamWatchProps {
     channel: IPTVChannel;
     videoRef: React.RefObject<HTMLVideoElement | null>;
     onClose: () => void;
     sidebar: React.ReactNode;
 }
 
-export const YouTubeWatch: React.FC<YouTubeWatchProps> = ({
+export const StreamWatch: React.FC<StreamWatchProps> = ({
     channel,
     videoRef,
     onClose,
@@ -286,7 +286,7 @@ export const YouTubeWatch: React.FC<YouTubeWatchProps> = ({
 
                 {/* 2. Channel Title & Actions */}
                 <div className={`mt-6 px-4 md:px-8 lg:px-12 transition-all max-w-[1400px] mx-auto w-full`}>
-                    <h1 className="text-lg sm:text-xl font-bold text-white mb-3">{channel.name} | StreamBox Live</h1>
+                    <h1 className="text-lg sm:text-xl font-bold text-white mb-3">{channel.name} | Live Stream</h1>
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-2">
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center p-1.5 shrink-0 overflow-hidden border border-zinc-700">

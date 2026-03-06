@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { IPTVBrowser } from './components/IPTVBrowser';
-import { YouTubeWatch } from './components/YouTubeWatch';
+import { StreamWatch } from './components/StreamWatch';
 import { AuthPage } from './components/AuthPage';
 import { AboutPage } from './components/AboutPage';
 import { Header } from './components/Header';
@@ -169,7 +169,7 @@ const App: React.FC = () => {
         )}
 
         {viewMode === 'watch' && selectedChannel && (
-          <YouTubeWatch
+          <StreamWatch
             channel={selectedChannel}
             videoRef={videoRef}
             onClose={handleGoHome}
