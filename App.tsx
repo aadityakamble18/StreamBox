@@ -175,11 +175,14 @@ const App: React.FC = () => {
             onClose={handleGoHome}
             sidebar={
               <div className="flex flex-col h-full bg-[#0f0f0f] p-2">
-                <h3 className="text-[10px] font-black text-zinc-600 uppercase tracking-widest mb-4 px-2">More Like This</h3>
+                <h3 className="text-[10px] font-black text-zinc-600 uppercase tracking-widest mb-4 px-2">
+                  {searchQuery ? 'Search Results' : 'More Like This'}
+                </h3>
                 <IPTVBrowser
                   onSelectChannel={handleSelectChannel}
                   layout="sidebar"
                   filterGroup={selectedChannel.group}
+                  searchQuery={searchQuery}
                 />
               </div>
             }
