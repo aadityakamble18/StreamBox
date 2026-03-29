@@ -28,7 +28,9 @@ export const IPTVBrowser: React.FC<IPTVBrowserProps> = ({
   const [activityStore, setActivityStore] = useState<ActivityStore>(activityService.getStore());
   const [visibleCount, setVisibleCount] = useState(40);
 
-  const scrollRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    setVisibleCount(40);
+  }, [searchQuery, activeGroup]);
 
   useEffect(() => {
     fetchIPTVChannels().then(data => {
@@ -41,13 +43,18 @@ export const IPTVBrowser: React.FC<IPTVBrowserProps> = ({
   }, []);
 
   const groups = useMemo(() => {
-    const uniqueGroups = Array.from(new Set(channels.map(c => c.group))) as string[];
+    const allGroups = new Set<string>();
+    channels.forEach(c => {
+      if (c.group) {
+        c.group.split(/[;,]/).forEach(g => {
+          const trimmed = g.trim();
+          if (trimmed) allGroups.add(trimmed);
+        });
+      }
+    });
 
-    // Split into singular and plural (containing commas)
-    const singular = uniqueGroups.filter(g => !g.includes(',')).sort((a, b) => a.localeCompare(b));
-    const multiple = uniqueGroups.filter(g => g.includes(',')).sort((a, b) => a.localeCompare(b));
-
-    return ['All', ...singular, ...multiple];
+    const sortedGroups = Array.from(allGroups).sort((a, b) => a.localeCompare(b));
+    return ['All', ...sortedGroups];
   }, [channels]);
 
   const filteredChannels = useMemo(() => {
@@ -80,19 +87,42 @@ export const IPTVBrowser: React.FC<IPTVBrowserProps> = ({
         return aName.localeCompare(bName);
       });
     } else if (activeGroup !== 'All') {
-      result = result.filter(c => c.group === activeGroup);
+      result = result.filter(c => {
+        const channelGroups = c.group.split(/[;,]/).map(g => g.trim());
+        return channelGroups.includes(activeGroup);
+      });
     }
 
     return result;
   }, [channels, searchQuery, activeGroup]);
 
-  const handleScroll = useCallback(() => {
-    if (!scrollRef.current) return;
-    const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
-    if (scrollTop + clientHeight >= scrollHeight - 300) {
-      setVisibleCount(prev => Math.min(prev + 40, filteredChannels.length));
+  const observerTarget = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const scrollContainer = document.querySelector('main.overflow-y-auto');
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !loading) {
+          setVisibleCount(prev => {
+            const next = Math.min(prev + 60, filteredChannels.length);
+            return next;
+          });
+        }
+      },
+      {
+        threshold: 0,
+        root: scrollContainer,
+        rootMargin: '800px'
+      }
+    );
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
     }
-  }, [filteredChannels.length]);
+
+    return () => observer.disconnect();
+  }, [filteredChannels.length, loading, activeGroup, searchQuery]);
 
   const visibleChannels = useMemo(() => {
     return filteredChannels.slice(0, visibleCount);
@@ -180,6 +210,12 @@ export const IPTVBrowser: React.FC<IPTVBrowserProps> = ({
               ))}
             </div>
           )}
+          {/* Intersection Observer Target */}
+          <div ref={observerTarget} className="h-20 w-full flex items-center justify-center">
+            {visibleCount < filteredChannels.length && (
+              <div className="w-6 h-6 border-2 border-zinc-800 border-t-orange-500 rounded-full animate-spin"></div>
+            )}
+          </div>
         </div>
       </div>
     </div>
