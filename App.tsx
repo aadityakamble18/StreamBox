@@ -197,7 +197,18 @@ const App: React.FC = () => {
               <div className="absolute inset-0 z-10 cursor-pointer"></div>
 
               <div className="absolute top-2 right-2 z-50 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button onClick={closeMiniPlayer} className="p-1.5 bg-black/60 hover:bg-black rounded-full text-white transition-all active:scale-90">
+                <button
+                  onClick={(e) => { e.stopPropagation(); expandMiniPlayer(); }}
+                  className="p-1.5 bg-black/60 hover:bg-black rounded-full text-white transition-all active:scale-90"
+                  title="Maximize"
+                >
+                  <svg viewBox="0 0 24 24" className="w-4 h-4 fill-white"><path d="M21 3h-6v2h4v4h2V3zM3 21h6v-2H5v-4H3v6z" /></svg>
+                </button>
+                <button
+                  onClick={closeMiniPlayer}
+                  className="p-1.5 bg-black/60 hover:bg-black rounded-full text-white transition-all active:scale-90"
+                  title="Close"
+                >
                   <svg viewBox="0 0 24 24" className="w-4 h-4 fill-white"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" /></svg>
                 </button>
               </div>
