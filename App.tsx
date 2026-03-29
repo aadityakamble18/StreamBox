@@ -139,7 +139,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="h-full w-full bg-[#0a0a0a] text-zinc-100 font-sans flex flex-col overflow-hidden">
+    <div className="h-screen w-full bg-[#0a0a0a] text-zinc-100 font-sans flex flex-col overflow-hidden">
       <Header
         onSearch={setSearchQuery}
         onOpenAuth={() => setShowAuth(true)}
